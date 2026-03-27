@@ -189,25 +189,49 @@ class _PieChartWidgetState extends State<PieChartWidget> {
           const SizedBox(height: 20),
 
           Column(
-            children: entries.map((e) {
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: categoryColors[e.key] ?? Colors.grey,
-                  child: Icon(
-                    categoryIcons[e.key] ?? Icons.category,
-                    color: Colors.white,
-                    size: 20,
+            children: entries.asMap().entries.map((entry) {
+              int index = entry.key;
+              var e = entry.value;
+
+              final isSelected = index == touchedIndex;
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? (categoryColors[e.key] ?? Colors.grey).withOpacity(0.2)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: categoryColors[e.key] ?? Colors.grey,
+                    child: Icon(
+                      categoryIcons[e.key] ?? Icons.category,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
-                ),
-                title: Text(e.key),
+                  title: Text(
+                    e.key,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
 
-                subtitle: Text(
-                  "${categoryCount[e.key]} Transaction${categoryCount[e.key]! > 1 ? 's' : ''}",
-                ),
 
-                trailing: Text(
-                  "-${e.value.toStringAsFixed(0)}",
-                  style: const TextStyle(color: Colors.red),
+                  subtitle: Text(
+                    "${categoryCount[e.key]} Transaction${categoryCount[e.key]! > 1 ? 's' : ''}",
+                  ),
+
+                  trailing: Text(
+                    "-${e.value.toStringAsFixed(0)}",
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight:
+                      isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
                 ),
               );
             }).toList(),
