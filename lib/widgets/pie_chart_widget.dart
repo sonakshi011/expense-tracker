@@ -18,6 +18,7 @@ class PieChartWidget extends StatefulWidget {
 
 class _PieChartWidgetState extends State<PieChartWidget> {
   int touchedIndex = -1;
+  bool showExpense = true;
 
   final Map<String, Color> categoryColors = {
     "Food/Drink": Colors.orange,
@@ -78,7 +79,7 @@ class _PieChartWidgetState extends State<PieChartWidget> {
 
     final filtered = widget.expenses.where((e) {
       final date = DateTime.parse(e.date);
-      return e.type == "expense" &&
+      return (e.type == (showExpense ? "expense" : "income")) &&
           date.month == widget.selectedMonth.month &&
           date.year == widget.selectedMonth.year;
     }).toList();
@@ -135,6 +136,86 @@ class _PieChartWidgetState extends State<PieChartWidget> {
       child: Column(
         children: [
 
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        showExpense = true;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: showExpense ? Colors.red : Colors.grey,
+                          width: 2,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.credit_card_off_sharp,
+                            color: showExpense ? Colors.red : Colors.grey,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            "Cash Out",
+                            style: TextStyle(
+                              color: showExpense ? Colors.red : Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        showExpense = false;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: !showExpense ? Colors.green : Colors.grey,
+                          width: 2,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.add_card,
+                            color: !showExpense ? Colors.green : Colors.grey,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            "Cash In",
+                            style: TextStyle(
+                              color: !showExpense ? Colors.green : Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           const SizedBox(height: 20),
 
           Stack(
@@ -172,14 +253,18 @@ class _PieChartWidgetState extends State<PieChartWidget> {
                 children: [
                   Text(
                     centerText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
+                      color: showExpense ? Colors.red : Colors.green,
                     ),
                   ),
                   Text(
                     subText,
-                    style: const TextStyle(fontSize: 14),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                    ),
                   ),
                 ],
               ),
@@ -218,7 +303,6 @@ class _PieChartWidgetState extends State<PieChartWidget> {
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
-
 
                   subtitle: Text(
                     "${categoryCount[e.key]} Transaction${categoryCount[e.key]! > 1 ? 's' : ''}",
