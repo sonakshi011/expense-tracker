@@ -1,3 +1,4 @@
+import '../widgets/pie_chart_widget.dart';
 import 'package:flutter/material.dart';
 import '../db/db_helper.dart';
 import '../models/expense.dart';
@@ -17,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Expense> expenses = [];
   int selectedIndex = 0;
   DateTime selectedMonth = DateTime.now();
+  bool isChartView = true;
 
   @override
   void initState() {
@@ -149,12 +151,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
           Expanded(
-            child: expenses.isEmpty
-                ? const Center(child: Text("No Transactions Yet"))
+            child: isChartView
+                ? PieChartWidget(expenses: expenses, selectedMonth: selectedMonth)
                 : TransactionSection(
               expenses: expenses,
               onRefresh: loadExpenses,
-                selectedMonth: selectedMonth,
+              selectedMonth: selectedMonth,
             ),
           ),
         ],
@@ -180,24 +182,24 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: selectedIndex,
         onTap: (index) async {
 
-          if (index == 1) {
+          if (index == 0) {
+            setState(() {
+              isChartView = !isChartView;
+              selectedIndex = 0;
+            });
+
+          } else if (index == 1) {
             final result = await Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const CashInScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const CashInScreen()),
             );
-
             if (result == true) loadExpenses();
 
           } else if (index == 2) {
             final result = await Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const CashOutScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const CashOutScreen()),
             );
-
             if (result == true) loadExpenses();
 
           } else {
@@ -206,6 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           }
         },
+          isChartView :isChartView
       ),
     );
   }

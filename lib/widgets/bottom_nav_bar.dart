@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class BottomNavBar extends StatelessWidget{
   final int currentIndex;
   final Function(int) onTap;
+  final bool isChartView;
 
   const BottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    required this.isChartView,
 });
   @override
   Widget build(BuildContext context){
@@ -19,7 +21,13 @@ class BottomNavBar extends StatelessWidget{
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            buildItem(Icons.list, "Overview", 0),
+            buildItem(
+              currentIndex == 0 && isChartView
+                  ? Icons.list
+                  : Icons.pie_chart,
+              isChartView ? "List" : "Overview",
+              0,
+            ),
             buildItem(Icons.add_card_rounded, "Cash In", 1),
             const SizedBox(width: 40),
             buildItem(Icons.credit_card_off_sharp, "Cash Out", 2),

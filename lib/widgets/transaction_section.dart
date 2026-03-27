@@ -197,12 +197,42 @@ class _TransactionSectionState extends State<TransactionSection> {
         return Colors.red;
       case "groceries":
         return Colors.purple;
+      case "fuel":
+        return Colors.grey;
       case "food/drink":
         return Colors.orange;
+      case "car/bike":
+        return Colors.green;
+      case "taxi":
+        return Colors.greenAccent;
+      case "clothes":
+        return Colors.pink;
+      case "shopping":
+        return Colors.purpleAccent;
       case "entertainment":
         return Colors.blueAccent;
+      case "electricity":
+        return Colors.blue;
+      case "maid salary":
+        return Colors.red;
+      case "gym":
+        return Colors.greenAccent;
       case "subscriptions":
         return Colors.deepPurple;
+      case "education":
+        return Colors.lightGreenAccent;
+      case "healthcare":
+        return Colors.redAccent;
+      case "vacation":
+        return Colors.orange;
+      case "loan":
+        return Colors.yellow;
+      case "gas":
+        return Colors.deepPurple;
+      case "water":
+        return Colors.lightBlue;
+      case "tax":
+        return Colors.green;
       case "other":
         return Colors.blueGrey;
       default:
@@ -225,12 +255,42 @@ class _TransactionSectionState extends State<TransactionSection> {
         return Icons.account_balance;
       case "groceries":
         return Icons.local_grocery_store;
+      case "fuel":
+        return Icons.local_gas_station;
       case "food/drink":
         return Icons.fastfood;
+      case "car/bike":
+        return Icons.car_rental;
+      case "taxi":
+        return Icons.local_taxi_rounded;
+      case "clothes":
+        return Icons.man_outlined;
+      case "shopping":
+        return Icons.shopping_bag_outlined;
       case "entertainment":
         return Icons.tv;
+      case "electricity":
+        return Icons.lightbulb_outline_sharp;
+      case "maid salary":
+        return Icons.money;
+      case "gym":
+        return Icons.sports_gymnastics;
       case "subscriptions":
         return Icons.subscriptions;
+      case "education":
+        return Icons.menu_book_sharp;
+      case "healthcare":
+        return Icons.monitor_heart_rounded;
+      case "vacation":
+        return Icons.holiday_village;
+      case "loan":
+        return Icons.payment;
+      case "gas":
+        return Icons.propane_tank;
+      case "water":
+        return Icons.water_drop;
+      case "tax":
+        return Icons.receipt_long;
       case "other":
         return Icons.inventory_outlined;
       default:
