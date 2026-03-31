@@ -48,6 +48,7 @@ class _CashOutScreenState extends State<CashOutScreen> {
             TextField(
               controller: amountController,
               keyboardType: TextInputType.number,
+              maxLength: 6,
               decoration: const InputDecoration(
                 prefixIcon: Icon(
                     Icons.account_balance_wallet, color: Colors.red),
@@ -65,6 +66,7 @@ class _CashOutScreenState extends State<CashOutScreen> {
             ),
             TextField(
               controller: noteController,
+              maxLength: 20,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.edit, color: Colors.red),
                 hintText: "Write a note (Optional)",

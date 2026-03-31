@@ -47,6 +47,7 @@ class _CashInScreenState extends State<CashInScreen> {
             TextField(
               controller: amountController,
               keyboardType: TextInputType.number,
+              maxLength: 6,
               decoration: const InputDecoration(
                 prefixIcon: Icon(
                     Icons.account_balance_wallet, color: Colors.green),
@@ -64,6 +65,7 @@ class _CashInScreenState extends State<CashInScreen> {
             ),
             TextField(
               controller: noteController,
+              maxLength: 20,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.edit, color: Colors.green),
                 hintText: "Write a note (Optional)",

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/expense.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TransactionSection extends StatefulWidget {
   final List<Expense> expenses;
@@ -23,9 +24,25 @@ class TransactionSection extends StatefulWidget {
 }
 
 class _TransactionSectionState extends State<TransactionSection> {
+
+  String currency = "₹";
+
+  @override
+  void initState() {
+    super.initState();
+    loadCurrency();
+  }
+
+  void loadCurrency() async {
+    final prefs = await SharedPreferences.getInstance(); // ✅ FIXED
+    setState(() {
+      currency = prefs.getString("currency") ?? "₹";
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-   //month filter(home)
+
     final filteredExpenses = widget.expenses.where((e) {
       final date = DateTime.parse(e.date);
       return date.month == widget.selectedMonth.month &&
@@ -59,8 +76,10 @@ class _TransactionSectionState extends State<TransactionSection> {
                     fontSize: 13,
                   ),
                 ),
+
+                // ✅ FIXED (NO HARDCODE ₹)
                 Text(
-                  "₹${getDayTotal(items).toStringAsFixed(0)}",
+                  "$currency${getDayTotal(items).toStringAsFixed(0)}",
                   style: TextStyle(
                     color: getDayTotal(items) >= 0
                         ? Colors.red
@@ -71,7 +90,6 @@ class _TransactionSectionState extends State<TransactionSection> {
               ],
             ),
           ),
-
 
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
@@ -114,10 +132,12 @@ class _TransactionSectionState extends State<TransactionSection> {
                     ),
                     title: Text(e.title),
                     subtitle: Text(e.category),
+
+                    // ✅ FIXED (DYNAMIC CURRENCY)
                     trailing: Text(
                       e.type == "expense"
-                          ? "-₹${e.amount}"
-                          : "+₹${e.amount}",
+                          ? "-$currency${e.amount}"
+                          : "+$currency${e.amount}",
                       style: TextStyle(
                         color: e.type == "expense"
                             ? Colors.red
@@ -125,7 +145,6 @@ class _TransactionSectionState extends State<TransactionSection> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
 
                     onTap: () async {
                       bool? result;
@@ -163,7 +182,6 @@ class _TransactionSectionState extends State<TransactionSection> {
     );
   }
 
-
   Map<String, List<Expense>> groupByDate(
       List<Expense> expenses) {
     Map<String, List<Expense>> grouped = {};
@@ -182,119 +200,63 @@ class _TransactionSectionState extends State<TransactionSection> {
     return grouped;
   }
 
-
   Color getCategoryColor(String category) {
     switch (category.toLowerCase()) {
-      case "salary":
-        return Colors.green;
-      case "business":
-        return Colors.blue;
-      case "investment":
-        return Colors.purple;
-      case "rent":
-        return Colors.orange;
-      case "loan":
-        return Colors.red;
-      case "groceries":
-        return Colors.purple;
-      case "fuel":
-        return Colors.grey;
-      case "food/drink":
-        return Colors.orange;
-      case "car/bike":
-        return Colors.green;
-      case "taxi":
-        return Colors.greenAccent;
-      case "clothes":
-        return Colors.pink;
-      case "shopping":
-        return Colors.purpleAccent;
-      case "entertainment":
-        return Colors.blueAccent;
-      case "electricity":
-        return Colors.blue;
-      case "maid salary":
-        return Colors.red;
-      case "gym":
-        return Colors.greenAccent;
-      case "subscriptions":
-        return Colors.deepPurple;
-      case "education":
-        return Colors.lightGreenAccent;
-      case "healthcare":
-        return Colors.redAccent;
-      case "vacation":
-        return Colors.orange;
-      case "loan":
-        return Colors.yellow;
-      case "gas":
-        return Colors.deepPurple;
-      case "water":
-        return Colors.lightBlue;
-      case "tax":
-        return Colors.green;
-      case "other":
-        return Colors.blueGrey;
-      default:
-        return Colors.blueGrey;
+      case "salary": return Colors.green;
+      case "business": return Colors.blue;
+      case "investment": return Colors.purple;
+      case "rent": return Colors.orange;
+      case "loan": return Colors.red;
+      case "groceries": return Colors.purple;
+      case "fuel": return Colors.grey;
+      case "food/drink": return Colors.orange;
+      case "car/bike": return Colors.green;
+      case "taxi": return Colors.greenAccent;
+      case "clothes": return Colors.pink;
+      case "shopping": return Colors.purpleAccent;
+      case "entertainment": return Colors.blueAccent;
+      case "electricity": return Colors.blue;
+      case "maid salary": return Colors.red;
+      case "gym": return Colors.greenAccent;
+      case "subscriptions": return Colors.deepPurple;
+      case "education": return Colors.lightGreenAccent;
+      case "healthcare": return Colors.redAccent;
+      case "vacation": return Colors.orange;
+      case "gas": return Colors.deepPurple;
+      case "water": return Colors.lightBlue;
+      case "tax": return Colors.green;
+      case "other": return Colors.blueGrey;
+      default: return Colors.blueGrey;
     }
   }
 
-
   IconData getCategoryIcon(String category) {
     switch (category.toLowerCase()) {
-      case "salary":
-        return Icons.attach_money;
-      case "business":
-        return Icons.work;
-      case "investment":
-        return Icons.trending_up;
-      case "rent":
-        return Icons.home;
-      case "loan":
-        return Icons.account_balance;
-      case "groceries":
-        return Icons.local_grocery_store;
-      case "fuel":
-        return Icons.local_gas_station;
-      case "food/drink":
-        return Icons.fastfood;
-      case "car/bike":
-        return Icons.car_rental;
-      case "taxi":
-        return Icons.local_taxi_rounded;
-      case "clothes":
-        return Icons.man_outlined;
-      case "shopping":
-        return Icons.shopping_bag_outlined;
-      case "entertainment":
-        return Icons.tv;
-      case "electricity":
-        return Icons.lightbulb_outline_sharp;
-      case "maid salary":
-        return Icons.money;
-      case "gym":
-        return Icons.sports_gymnastics;
-      case "subscriptions":
-        return Icons.subscriptions;
-      case "education":
-        return Icons.menu_book_sharp;
-      case "healthcare":
-        return Icons.monitor_heart_rounded;
-      case "vacation":
-        return Icons.holiday_village;
-      case "loan":
-        return Icons.payment;
-      case "gas":
-        return Icons.propane_tank;
-      case "water":
-        return Icons.water_drop;
-      case "tax":
-        return Icons.receipt_long;
-      case "other":
-        return Icons.inventory_outlined;
-      default:
-        return Icons.category;
+      case "salary": return Icons.attach_money;
+      case "business": return Icons.work;
+      case "investment": return Icons.trending_up;
+      case "rent": return Icons.home;
+      case "loan": return Icons.account_balance;
+      case "groceries": return Icons.local_grocery_store;
+      case "fuel": return Icons.local_gas_station;
+      case "food/drink": return Icons.fastfood;
+      case "car/bike": return Icons.car_rental;
+      case "taxi": return Icons.local_taxi_rounded;
+      case "clothes": return Icons.man_outlined;
+      case "shopping": return Icons.shopping_bag_outlined;
+      case "entertainment": return Icons.tv;
+      case "electricity": return Icons.lightbulb_outline_sharp;
+      case "maid salary": return Icons.money;
+      case "gym": return Icons.sports_gymnastics;
+      case "subscriptions": return Icons.subscriptions;
+      case "education": return Icons.menu_book_sharp;
+      case "healthcare": return Icons.monitor_heart_rounded;
+      case "vacation": return Icons.holiday_village;
+      case "gas": return Icons.propane_tank;
+      case "water": return Icons.water_drop;
+      case "tax": return Icons.receipt_long;
+      case "other": return Icons.inventory_outlined;
+      default: return Icons.category;
     }
   }
 

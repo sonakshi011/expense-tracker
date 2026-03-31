@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/expense.dart';
 
 class PieChartWidget extends StatefulWidget {
@@ -19,6 +20,21 @@ class PieChartWidget extends StatefulWidget {
 class _PieChartWidgetState extends State<PieChartWidget> {
   int touchedIndex = -1;
   bool showExpense = true;
+
+  String currency = "₹";
+
+  @override
+  void initState() {
+    super.initState();
+    loadCurrency();
+  }
+
+  void loadCurrency() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      currency = prefs.getString("currency") ?? "₹";
+    });
+  }
 
   final Map<String, Color> categoryColors = {
     "Food/Drink": Colors.orange,
@@ -55,8 +71,8 @@ class _PieChartWidgetState extends State<PieChartWidget> {
     "Business": Icons.work,
     "Salary": Icons.attach_money,
     "Investment": Icons.trending_up,
-    "Rent" :Icons.home,
-    "Loan" :Icons.payment,
+    "Rent": Icons.home,
+    "Loan": Icons.payment,
     "Groceries": Icons.local_grocery_store,
     "Fuel": Icons.local_gas_station,
     "Car/Bike": Icons.car_rental,
@@ -84,16 +100,14 @@ class _PieChartWidgetState extends State<PieChartWidget> {
           date.year == widget.selectedMonth.year;
     }).toList();
 
-
     final chartData = filtered.isEmpty
         ? widget.expenses.where((e) => e.type == "expense").toList()
         : filtered;
 
-
     Map<String, double> categoryMap = {};
     Map<String, int> categoryCount = {};
-    for (var e in chartData) {
 
+    for (var e in chartData) {
       categoryMap[e.category] =
           (categoryMap[e.category] ?? 0) + e.amount;
 
@@ -124,11 +138,11 @@ class _PieChartWidgetState extends State<PieChartWidget> {
     String subText;
 
     if (touchedIndex == -1) {
-      centerText = total.toStringAsFixed(0);
+      centerText = "$currency${total.toStringAsFixed(0)}";
       subText = "Total";
     } else {
       centerText =
-          entries[touchedIndex].value.toStringAsFixed(0);
+      "$currency${entries[touchedIndex].value.toStringAsFixed(0)}";
       subText = entries[touchedIndex].key;
     }
 
@@ -303,15 +317,13 @@ class _PieChartWidgetState extends State<PieChartWidget> {
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
-
                   subtitle: Text(
                     "${categoryCount[e.key]} Transaction${categoryCount[e.key]! > 1 ? 's' : ''}",
                   ),
-
                   trailing: Text(
-                    "-${e.value.toStringAsFixed(0)}",
+                    "$currency${e.value.toStringAsFixed(0)}",
                     style: TextStyle(
-                      color: Colors.red,
+                      color: !showExpense ? Colors.green : Colors.red,
                       fontWeight:
                       isSelected ? FontWeight.bold : FontWeight.normal,
                     ),

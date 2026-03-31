@@ -6,6 +6,8 @@ import '../widgets/transaction_section.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../screens/cash_in_screen.dart';
 import '../screens/cash_out_screen.dart';
+import '../screens/settings_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,12 +21,38 @@ class _HomeScreenState extends State<HomeScreen> {
   int selectedIndex = 0;
   DateTime selectedMonth = DateTime.now();
   bool isChartView = true;
+  String bookName = "My Book";
+  String currency = "₹";
+  Color themeColor = Colors.red;
+
 
   @override
   void initState() {
     super.initState();
     loadExpenses();
+    loadSettings();
+    loadCurrency();
   }
+
+  void loadCurrency() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      currency = prefs.getString("currency") ?? "₹";
+    });
+  }
+
+  Future<void> loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      bookName = prefs.getString("bookName") ?? "My Book";
+      currency = prefs.getString("currency") ?? "₹";
+      themeColor = Color(
+        prefs.getInt("themeColor") ?? Colors.red.value,
+      );
+    });
+  }
+
 
   Future<void> loadExpenses() async {
     final data = await DbHelper.instance.getExpenses();
@@ -59,16 +87,19 @@ class _HomeScreenState extends State<HomeScreen> {
               top: 50,
               bottom: 20,
             ),
-            decoration: const BoxDecoration(
+            decoration:  BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFFFF5F6D), Color(0xFFFF2D55)],
+                colors:[
+                  themeColor,
+                  themeColor.withOpacity(0.7),
+                ] ,
               ),
             ),
             child: Column(
               children: [
 
-                const Text(
-                  "My Book",
+                 Text(
+                  bookName,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -202,10 +233,15 @@ class _HomeScreenState extends State<HomeScreen> {
             );
             if (result == true) loadExpenses();
 
-          } else {
-            setState(() {
-              selectedIndex = index;
-            });
+          } else if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const SettingsScreen(),
+              ),
+            );
+            loadCurrency();
+            loadSettings();
           }
         },
           isChartView :isChartView
