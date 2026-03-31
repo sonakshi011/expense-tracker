@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../db/db_helper.dart';
 import '../models/expense.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CashOutScreen extends StatefulWidget {
   final Expense? expense;
-  const CashOutScreen ({super.key, this.expense});
+ const CashOutScreen ({super.key, this.expense});
+
 
   @override
   State<CashOutScreen> createState() => _CashOutScreenState();
@@ -14,6 +16,7 @@ class CashOutScreen extends StatefulWidget {
 class _CashOutScreenState extends State<CashOutScreen> {
   String selectedCategory = "Select Category";
   DateTime selectedDate = DateTime.now();
+  String currency = "₹";
 
   final amountController = TextEditingController();
   final noteController = TextEditingController();
@@ -21,6 +24,7 @@ class _CashOutScreenState extends State<CashOutScreen> {
   @override
   void initState() {
     super.initState();
+    loadCurrency();
 
     if (widget.expense != null) {
       selectedCategory = widget.expense!.category;
@@ -60,11 +64,11 @@ class _CashOutScreenState extends State<CashOutScreen> {
               controller: amountController,
               keyboardType: TextInputType.number,
               maxLength: 6,
-              decoration: const InputDecoration(
+              decoration:  InputDecoration(
                 prefixIcon: Icon(
                     Icons.account_balance_wallet, color: Colors.red),
                 hintText: "Enter Amount",
-                suffixText: "INR",
+                suffixText: "$currency "
               ),
             ),
 
@@ -91,7 +95,7 @@ class _CashOutScreenState extends State<CashOutScreen> {
             TextField(
               controller: noteController,
               maxLength: 20,
-              decoration: const InputDecoration(
+              decoration:  InputDecoration(
                 prefixIcon: Icon(Icons.edit, color: Colors.red),
                 hintText: "Write a note (Optional)",
               ),
@@ -220,5 +224,11 @@ class _CashOutScreenState extends State<CashOutScreen> {
     }
 
     Navigator.pop(context, true);
+  }
+  void loadCurrency() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      currency = prefs.getString("currency") ?? "₹";
+    });
   }
 }

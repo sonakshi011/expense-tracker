@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../db/db_helper.dart';
 import '../models/expense.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 class CashInScreen extends StatefulWidget {
   final Expense? expense;
 
@@ -14,6 +14,7 @@ class CashInScreen extends StatefulWidget {
 class _CashInScreenState extends State<CashInScreen> {
   String selectedCategory = "Select Category";
   DateTime selectedDate = DateTime.now();
+  String currency = "₹";
 
   final amountController = TextEditingController();
   final noteController = TextEditingController();
@@ -21,6 +22,7 @@ class _CashInScreenState extends State<CashInScreen> {
   @override
   void initState() {
     super.initState();
+    loadCurrency();
 
     if (widget.expense != null) {
       selectedCategory = widget.expense!.category;
@@ -59,11 +61,11 @@ class _CashInScreenState extends State<CashInScreen> {
               controller: amountController,
               keyboardType: TextInputType.number,
               maxLength: 6,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 prefixIcon: Icon(
                     Icons.account_balance_wallet, color: Colors.green),
                 hintText: "Enter Amount",
-                suffixText: "INR",
+                suffixText:  "$currency ",
               ),
             ),
             const SizedBox(height: 16),
@@ -196,5 +198,11 @@ class _CashInScreenState extends State<CashInScreen> {
     }
 
     Navigator.pop(context, true);
+  }
+  void loadCurrency() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      currency = prefs.getString("currency") ?? "₹";
+    });
   }
 }
