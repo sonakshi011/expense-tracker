@@ -39,10 +39,21 @@ class _CashInScreenState extends State<CashInScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            ListTile(
-              leading: const Icon(Icons.grid_view, color: Colors.green),
-              title: Text(selectedCategory),
-              onTap: openCategorySheet,
+            Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.grid_view, color: Colors.green),
+                  title: Text(selectedCategory),
+                  onTap: openCategorySheet,
+                ),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: Colors.grey,
+                ),
+              ],
             ),
             TextField(
               controller: amountController,
@@ -57,11 +68,22 @@ class _CashInScreenState extends State<CashInScreen> {
             ),
             const SizedBox(height: 16),
 
-            ListTile(
-              leading: const Icon(
-                  Icons.edit_calendar_outlined, color: Colors.green),
-              title: Text(DateFormat('dd MMM yyyy').format(selectedDate)),
-              onTap: pickDate,
+            Column(
+              children: [
+                ListTile(
+                  leading: const Icon(
+                      Icons.edit_calendar_outlined, color: Colors.green),
+                  title: Text(DateFormat('dd MMM yyyy').format(selectedDate)),
+                  onTap: pickDate,
+                ),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: Colors.grey,
+                ),
+              ],
             ),
             TextField(
               controller: noteController,
@@ -75,7 +97,8 @@ class _CashInScreenState extends State<CashInScreen> {
 
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 50),
               ),
               onPressed: saveData,
@@ -149,7 +172,7 @@ class _CashInScreenState extends State<CashInScreen> {
     if (amountController.text.isEmpty) return;
 
     if (widget.expense == null) {
-      // ADD
+
       await DbHelper.instance.insertExpense(
         Expense(
           title: selectedCategory,
