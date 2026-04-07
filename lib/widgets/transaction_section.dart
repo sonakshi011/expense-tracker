@@ -7,6 +7,7 @@ import '../models/expense.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
 class TransactionSection extends StatefulWidget {
   final List<Expense> expenses;
   final VoidCallback onRefresh;
@@ -24,7 +25,6 @@ class TransactionSection extends StatefulWidget {
 }
 
 class _TransactionSectionState extends State<TransactionSection> {
-
   String currency = "₹";
 
   @override
@@ -34,10 +34,8 @@ class _TransactionSectionState extends State<TransactionSection> {
   }
 
   void loadCurrency() async {
-    final prefs = await SharedPreferences.getInstance(); // ✅ FIXED
-    setState(() {
-      currency = prefs.getString("currency") ?? "₹";
-    });
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => currency = prefs.getString("currency") ?? "₹");
   }
 
   @override
@@ -50,9 +48,7 @@ class _TransactionSectionState extends State<TransactionSection> {
     }).toList();
 
     final groupedExpenses = groupByDate(filteredExpenses);
-
-    final sortedKeys = groupedExpenses.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
+    final sortedKeys = groupedExpenses.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return CustomScrollView(
       slivers: sortedKeys.map((dateKey) {
@@ -63,27 +59,18 @@ class _TransactionSectionState extends State<TransactionSection> {
           header: Container(
             width: double.infinity,
             color: Colors.grey.shade100,
-            padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
-              mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   DateFormat('dd MMM, yyyy').format(date),
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
-
-                // ✅ FIXED (NO HARDCODE ₹)
                 Text(
                   "$currency${getDayTotal(items).toStringAsFixed(0)}",
                   style: TextStyle(
-                    color: getDayTotal(items) >= 0
-                        ? Colors.red
-                        : Colors.green,
+                    color: getDayTotal(items) >= 0 ? Colors.red : Colors.green,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -97,79 +84,52 @@ class _TransactionSectionState extends State<TransactionSection> {
                 final e = items[index];
 
                 return Dismissible(
-                  key: Key(e.id.toString()),
+                  // CHANGE: use firestoreId as unique key (was e.id.toString())
+                  key: Key(e.firestoreId ?? UniqueKey().toString()),
 
                   onDismissed: (_) async {
-                    await DbHelper.instance
-                        .deleteExpense(e.id!);
-
+                    // CHANGE: pass firestoreId (String) instead of int id
+                    await DbHelper.instance.deleteExpense(e.firestoreId!);
                     widget.onRefresh();
-
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
-                      const SnackBar(
-                          content: Text("Deleted")),
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Deleted")),
                     );
                   },
 
                   background: Container(
                     color: Colors.red,
                     alignment: Alignment.centerRight,
-                    padding:
-                    const EdgeInsets.only(right: 20),
-                    child: const Icon(Icons.delete,
-                        color: Colors.white),
+                    padding: const EdgeInsets.only(right: 20),
+                    child: const Icon(Icons.delete, color: Colors.white),
                   ),
 
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor:
-                      getCategoryColor(e.category),
-                      child: Icon(
-                        getCategoryIcon(e.category),
-                        color: Colors.white,
-                      ),
+                      backgroundColor: getCategoryColor(e.category),
+                      child: Icon(getCategoryIcon(e.category), color: Colors.white),
                     ),
                     title: Text(e.title),
                     subtitle: Text(e.category),
-
-                    // ✅ FIXED (DYNAMIC CURRENCY)
                     trailing: Text(
                       e.type == "expense"
                           ? "-$currency${e.amount}"
                           : "+$currency${e.amount}",
                       style: TextStyle(
-                        color: e.type == "expense"
-                            ? Colors.red
-                            : Colors.green,
+                        color: e.type == "expense" ? Colors.red : Colors.green,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
                     onTap: () async {
                       bool? result;
-
                       if (e.type == "income") {
-                        result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                CashInScreen(expense: e),
-                          ),
-                        );
+                        result = await Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => CashInScreen(expense: e)));
                       } else {
-                        result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                CashOutScreen(expense: e),
-                          ),
-                        );
+                        result = await Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => CashOutScreen(expense: e)));
                       }
-
-                      if (result == true) {
-                        widget.onRefresh();
-                      }
+                      if (result == true) widget.onRefresh();
                     },
                   ),
                 );
@@ -182,22 +142,22 @@ class _TransactionSectionState extends State<TransactionSection> {
     );
   }
 
-  Map<String, List<Expense>> groupByDate(
-      List<Expense> expenses) {
+  Map<String, List<Expense>> groupByDate(List<Expense> expenses) {
     Map<String, List<Expense>> grouped = {};
-
     for (var e in expenses) {
-      String dateKey = DateFormat('yyyy-MM-dd')
-          .format(DateTime.parse(e.date));
-
-      if (!grouped.containsKey(dateKey)) {
-        grouped[dateKey] = [];
-      }
-
+      String dateKey = DateFormat('yyyy-MM-dd').format(DateTime.parse(e.date));
+      if (!grouped.containsKey(dateKey)) grouped[dateKey] = [];
       grouped[dateKey]!.add(e);
     }
-
     return grouped;
+  }
+
+  double getDayTotal(List<Expense> items) {
+    double total = 0;
+    for (var e in items) {
+      total += e.type == "expense" ? e.amount : -e.amount;
+    }
+    return total;
   }
 
   Color getCategoryColor(String category) {
@@ -258,19 +218,5 @@ class _TransactionSectionState extends State<TransactionSection> {
       case "other": return Icons.inventory_outlined;
       default: return Icons.category;
     }
-  }
-
-  double getDayTotal(List<Expense> items) {
-    double total = 0;
-
-    for (var e in items) {
-      if (e.type == "expense") {
-        total += e.amount;
-      } else {
-        total -= e.amount;
-      }
-    }
-
-    return total;
   }
 }

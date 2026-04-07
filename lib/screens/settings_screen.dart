@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:currency_picker/currency_picker.dart';
@@ -31,27 +32,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-
     setState(() {
       bookName = prefs.getString("bookName") ?? "My Book";
       currency = prefs.getString("currency") ?? "₹";
-      selectedColor = Color(
-        prefs.getInt("themeColor") ?? Colors.teal.value,
-      );
+      selectedColor = Color(prefs.getInt("themeColor") ?? Colors.teal.value);
     });
   }
 
   Future<void> saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-
     await prefs.setString("bookName", bookName);
     await prefs.setString("currency", currency);
     await prefs.setInt("themeColor", selectedColor.value);
   }
 
+
+  Future<void> _logout() async {
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Logout"),
+        content: const Text("Are you sure you want to logout?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Logout", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await FirebaseAuth.instance.signOut();
+
+    }
+  }
+
   void editBookName() {
     final controller = TextEditingController(text: bookName);
-
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -60,9 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              setState(() {
-                bookName = controller.text;
-              });
+              setState(() => bookName = controller.text);
               saveSettings();
               Navigator.pop(context);
             },
@@ -80,23 +101,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       showCurrencyName: true,
       showCurrencyCode: true,
       onSelect: (Currency currencyData) {
-        setState(() {
-          currency = currencyData.symbol;
-        });
+        setState(() => currency = currencyData.symbol);
         saveSettings();
-      },
-    );
-  }
-
-  Widget buildCurrency(String symbol, String name) {
-    return ListTile(
-      title: Text(name),
-      onTap: () {
-        setState(() {
-          currency = symbol;
-        });
-        saveSettings();
-        Navigator.pop(context);
       },
     );
   }
@@ -110,9 +116,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: selectedColor,
         elevation: 0,
         leading: const BackButton(color: Colors.white),
-        actions: const [
-          Icon(Icons.more_vert, color: Colors.white),
-          SizedBox(width: 10),
+
+
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) {
+              if (value == 'logout') {
+                _logout();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.red, size: 20),
+                    SizedBox(width: 10),
+                    Text('Logout', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 4),
         ],
       ),
 
@@ -125,21 +152,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Book Name",
-                  style: TextStyle(color: Colors.grey),
-                ),
+                const Text("Book Name", style: TextStyle(color: Colors.grey)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      bookName,
-                      style: const TextStyle(fontSize: 18),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: editBookName,
-                    )
+                    Text(bookName, style: const TextStyle(fontSize: 18)),
+                    IconButton(icon: const Icon(Icons.edit), onPressed: editBookName),
                   ],
                 ),
               ],
@@ -148,28 +166,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 15),
 
+
           Container(
             color: Colors.white,
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Select Theme",
-                  style: TextStyle(color: Colors.grey),
-                ),
+                const Text("Select Theme", style: TextStyle(color: Colors.grey)),
                 const SizedBox(height: 20),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: colors.map((color) {
                     final isSelected = selectedColor.value == color.value;
-
                     return GestureDetector(
                       onTap: () {
-                        setState(() {
-                          selectedColor = color;
-                        });
+                        setState(() => selectedColor = color);
                         saveSettings();
                       },
                       child: CircleAvatar(
@@ -181,24 +193,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     );
                   }).toList(),
-                )
+                ),
               ],
             ),
           ),
 
           const SizedBox(height: 10),
 
+
           Container(
             color: Colors.white,
             child: ListTile(
-              title: const Text(
-                "Select Currency",
-                style: TextStyle(color: Colors.grey),
-              ),
-              subtitle: Text(
-                currency,
-                style: const TextStyle(fontSize: 20),
-              ),
+              title: const Text("Select Currency", style: TextStyle(color: Colors.grey)),
+              subtitle: Text(currency, style: const TextStyle(fontSize: 20)),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: selectCurrency,
             ),

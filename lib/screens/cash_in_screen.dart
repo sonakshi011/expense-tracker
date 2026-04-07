@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../db/db_helper.dart';
 import '../models/expense.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+
 class CashInScreen extends StatefulWidget {
   final Expense? expense;
 
@@ -11,6 +13,7 @@ class CashInScreen extends StatefulWidget {
   @override
   State<CashInScreen> createState() => _CashInScreenState();
 }
+
 class _CashInScreenState extends State<CashInScreen> {
   String selectedCategory = "Select Category";
   DateTime selectedDate = DateTime.now();
@@ -34,9 +37,7 @@ class _CashInScreenState extends State<CashInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Cash In"),
-      ),
+      appBar: AppBar(title: const Text("Cash In")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -48,13 +49,7 @@ class _CashInScreenState extends State<CashInScreen> {
                   title: Text(selectedCategory),
                   onTap: openCategorySheet,
                 ),
-                const Divider(
-                  height: 1,
-                  thickness: 1,
-                  indent: 16,
-                  endIndent: 16,
-                  color: Colors.grey,
-                ),
+                const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16, color: Colors.grey),
               ],
             ),
             TextField(
@@ -62,29 +57,20 @@ class _CashInScreenState extends State<CashInScreen> {
               keyboardType: TextInputType.number,
               maxLength: 6,
               decoration: InputDecoration(
-                prefixIcon: Icon(
-                    Icons.account_balance_wallet, color: Colors.green),
+                prefixIcon: const Icon(Icons.account_balance_wallet, color: Colors.green),
                 hintText: "Enter Amount",
-                suffixText:  "$currency ",
+                suffixText: "$currency ",
               ),
             ),
             const SizedBox(height: 16),
-
             Column(
               children: [
                 ListTile(
-                  leading: const Icon(
-                      Icons.edit_calendar_outlined, color: Colors.green),
+                  leading: const Icon(Icons.edit_calendar_outlined, color: Colors.green),
                   title: Text(DateFormat('dd MMM yyyy').format(selectedDate)),
                   onTap: pickDate,
                 ),
-                const Divider(
-                  height: 1,
-                  thickness: 1,
-                  indent: 16,
-                  endIndent: 16,
-                  color: Colors.grey,
-                ),
+                const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16, color: Colors.grey),
               ],
             ),
             TextField(
@@ -96,7 +82,6 @@ class _CashInScreenState extends State<CashInScreen> {
               ),
             ),
             const Spacer(),
-
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
@@ -112,6 +97,36 @@ class _CashInScreenState extends State<CashInScreen> {
     );
   }
 
+  void saveData() async {
+    if (amountController.text.isEmpty) return;
+
+    if (widget.expense == null) {
+      // ── INSERT new expense ──
+      await DbHelper.instance.insertExpense(
+        Expense(
+          title: selectedCategory,
+          amount: double.parse(amountController.text),
+          type: "income",
+          category: selectedCategory,
+          date: selectedDate.toIso8601String(),
+        ),
+      );
+    } else {
+
+      await DbHelper.instance.updateExpense(
+        Expense(
+          firestoreId: widget.expense!.firestoreId,
+          title: selectedCategory,
+          amount: double.parse(amountController.text),
+          type: "income",
+          category: selectedCategory,
+          date: selectedDate.toIso8601String(),
+        ),
+      );
+    }
+
+    Navigator.pop(context, true);
+  }
 
   void openCategorySheet() {
     showModalBottomSheet(
@@ -136,9 +151,7 @@ class _CashInScreenState extends State<CashInScreen> {
   Widget buildCategory(String name, IconData icon, Color color) {
     return GestureDetector(
       onTap: () {
-        setState(() {
-          selectedCategory = name;
-        });
+        setState(() => selectedCategory = name);
         Navigator.pop(context);
       },
       child: Column(
@@ -162,47 +175,18 @@ class _CashInScreenState extends State<CashInScreen> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-
-    if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-      });
-    }
+    if (picked != null) setState(() => selectedDate = picked);
   }
 
-  void saveData() async {
-    if (amountController.text.isEmpty) return;
-
-    if (widget.expense == null) {
-
-      await DbHelper.instance.insertExpense(
-        Expense(
-          title: selectedCategory,
-          amount: double.parse(amountController.text),
-          type: "income",
-          category: selectedCategory,
-          date: selectedDate.toIso8601String(),
-        ),
-      );
-    } else {
-      await DbHelper.instance.updateExpense(
-        Expense(
-          id: widget.expense!.id,
-          title: selectedCategory,
-          amount: double.parse(amountController.text),
-          type: "income",
-          category: selectedCategory,
-          date: selectedDate.toIso8601String(),
-        ),
-      );
-    }
-
-    Navigator.pop(context, true);
-  }
   void loadCurrency() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      currency = prefs.getString("currency") ?? "₹";
-    });
+    setState(() => currency = prefs.getString("currency") ?? "₹");
+  }
+
+  @override
+  void dispose() {
+    amountController.dispose();
+    noteController.dispose();
+    super.dispose();
   }
 }

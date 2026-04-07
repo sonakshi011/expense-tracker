@@ -1,5 +1,5 @@
 class Expense {
-  final int? id;
+  final String? firestoreId;
   final String title;
   final double amount;
   final String type;
@@ -7,7 +7,7 @@ class Expense {
   final String date;
 
   Expense({
-    this.id,
+    this.firestoreId,
     required this.title,
     required this.amount,
     required this.type,
@@ -15,9 +15,8 @@ class Expense {
     required this.date,
   });
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toFirestore() {
     return {
-      'id': id,
       'title': title,
       'amount': amount,
       'type': type,
@@ -26,9 +25,29 @@ class Expense {
     };
   }
 
-  factory Expense.fromMap(Map<String, dynamic> map){
+  factory Expense.fromFirestore(String docId, Map<String, dynamic> map) {
     return Expense(
-      id: map['id'],
+      firestoreId: docId,
+      title: map['title'] ?? '',
+      amount: (map['amount'] as num).toDouble(),
+      type: map['type'] ?? 'expense',
+      category: map['category'] ?? '',
+      date: map['date'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'amount': amount,
+      'type': type,
+      'category': category,
+      'date': date,
+    };
+  }
+
+  factory Expense.fromMap(Map<String, dynamic> map) {
+    return Expense(
       title: map['title'],
       amount: map['amount'],
       type: map['type'],

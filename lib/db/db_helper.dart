@@ -1,72 +1,45 @@
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/expense.dart';
 
 class DbHelper {
-  static Database? _database;
 
   static final DbHelper instance = DbHelper._init();
-
   DbHelper._init();
 
-  Future<Database> get database async {
-    if(_database != null) return _database!;
-    _database = await _initDB('expense.db');
-    return _database!;
-  }
+  String get _userId => FirebaseAuth.instance.currentUser!.uid;
 
-  Future<Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
+  CollectionReference get _expensesRef => FirebaseFirestore.instance
+      .collection('users')
+      .doc(_userId)
+      .collection('expenses');
 
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _createDB,
-    );
-  }
-
-  Future _createDB(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE expenses(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT,
-      amount REAL,
-      type TEXT,
-      category TEXT,
-      date TEXT
-      )
-    ''');
-  }
-
-  Future<int> insertExpense(Expense expense) async {
-    final db = await instance.database;
-    return await db.insert('expenses', expense.toMap());
+  Future<void> insertExpense(Expense expense) async {
+    await _expensesRef.add(expense.toFirestore());
   }
 
   Future<List<Expense>> getExpenses() async {
-    final db = await instance.database;
-    final result = await db.query('expenses', orderBy: 'date DESC');
+    final snapshot = await _expensesRef
+        .orderBy('date', descending: true)
+        .get();
 
-    return result.map((e) => Expense.fromMap(e)).toList();
+    return snapshot.docs.map((doc) {
+      return Expense.fromFirestore(doc.id, doc.data() as Map<String, dynamic>);
+    }).toList();
   }
-  Future<int> deleteExpense(int id) async{
-    final db = await instance.database;
-    print("Deleting ID: $id");
-    return await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
+
+  Future<void> deleteExpense(String firestoreId) async {
+    await _expensesRef.doc(firestoreId).delete();
   }
+
+  Future<void> updateExpense(Expense expense) async {
+    await _expensesRef.doc(expense.firestoreId).update(expense.toFirestore());
+  }
+
   Future<void> clearAllData() async {
-    final db = await instance.database;
-    await db.delete('expenses');
-  }
-  Future<int> updateExpense(Expense expense) async {
-    final db = await database;
-
-    return await db.update(
-      'expenses',
-      expense.toMap(),
-      where: 'id = ?',
-      whereArgs: [expense.id],
-    );
+    final snapshot = await _expensesRef.get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
   }
 }
