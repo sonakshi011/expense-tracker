@@ -1,7 +1,9 @@
+import 'package:expense_tracker/screens/login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:currency_picker/currency_picker.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -69,8 +71,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (confirm == true) {
       await FirebaseAuth.instance.signOut();
+      await GoogleSignIn().disconnect();
 
     }
+    //new
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );//new
   }
 
   void editBookName() {
