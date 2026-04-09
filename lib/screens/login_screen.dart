@@ -29,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
+      //new
       UserCredential userCredential =
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
@@ -36,7 +37,11 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
 
-      if (!userCredential.user!.emailVerified) {
+      await FirebaseAuth.instance.currentUser?.reload();
+      final user = FirebaseAuth.instance.currentUser;
+
+// new
+      if (user != null && !user.emailVerified) {
         await FirebaseAuth.instance.signOut();
 
         if (mounted) {
@@ -85,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
         return;
-      }
+      }//new
 
 
 

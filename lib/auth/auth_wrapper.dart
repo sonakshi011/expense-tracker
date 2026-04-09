@@ -14,6 +14,7 @@ class AuthWrapper extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
 
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
@@ -21,6 +22,7 @@ class AuthWrapper extends StatelessWidget {
         }
 
         final User? user = snapshot.data;
+
 
         if (user == null) {
           return const LoginScreen();
@@ -31,9 +33,10 @@ class AuthWrapper extends StatelessWidget {
 
         if (!user.emailVerified && !isGoogleUser) {
 
-          FirebaseAuth.instance.signOut();
+          // FirebaseAuth.instance.signOut();
           return const LoginScreen();
         }
+
 
         return const HomeScreen();
       },

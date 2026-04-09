@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:currency_picker/currency_picker.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,6 +17,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String bookName = "My Book";
   String currency = "₹";
   Color selectedColor = Colors.teal;
+  //new
+  String name = "";
+  String email = "";
+  String phone = "";
+  bool isLoadingProfile = true;//new
 
   final List<Color> colors = [
     Colors.red,
@@ -30,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     loadSettings();
+    loadUserData();
   }
 
   Future<void> loadSettings() async {
@@ -48,9 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setInt("themeColor", selectedColor.value);
   }
 
-
   Future<void> _logout() async {
-
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -73,12 +78,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await FirebaseAuth.instance.signOut();
       await GoogleSignIn().disconnect();
 
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+      );
     }
-    //new
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );//new
   }
 
   void editBookName() {
@@ -101,6 +106,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+//new
+  Future<void> loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists) {
+        setState(() {
+          name = doc['name'] ?? "";
+          email = doc['email'] ?? "";
+          phone = doc['phone'] ?? "";
+          isLoadingProfile = false;
+        });
+      }
+    }
+  }//new
+
 
   void selectCurrency() {
     showCurrencyPicker(
@@ -153,6 +179,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       body: ListView(
         children: [
+          //new
+          Container(
+            color: selectedColor,
+            padding: const EdgeInsets.all(20),
+            child: isLoadingProfile
+                ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                : Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.white,
+                  child: Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : "?",
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: selectedColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(email,
+                          style: const TextStyle(color: Colors.white70)),
+                      const SizedBox(height: 2),
+                      Text(phone,
+                          style: const TextStyle(color: Colors.white70)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),//new
 
           Container(
             color: Colors.white,

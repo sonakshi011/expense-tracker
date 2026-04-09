@@ -1,6 +1,8 @@
+// import 'package:expense_tracker/screens/otp_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -12,30 +14,40 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();//new
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+
 
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-
+  //new
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-
       UserCredential userCredential =
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      //new
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'createdAt': Timestamp.now(),
+      });//new
 
-
-      await userCredential.user!.updateDisplayName(_nameController.text.trim());
+      // await userCredential.user!.updateDisplayName(_nameController.text.trim());
 
       await userCredential.user!.sendEmailVerification();
 
@@ -92,12 +104,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+//new
+//   Future<void> _register() async {
+//     if (!_formKey.currentState!.validate()) return;
+//
+//     setState(() => _isLoading = true);
+//
+//     try {
+//       await FirebaseAuth.instance.verifyPhoneNumber(
+//         phoneNumber: '+91${_phoneController.text.trim()}',
+//         verificationCompleted: (PhoneAuthCredential credential) async {
+//
+//           await FirebaseAuth.instance.signInWithCredential(credential);
+//         },
+//         verificationFailed: (FirebaseAuthException e) {
+//           ScaffoldMessenger.of(context).showSnackBar(
+//             SnackBar(content: Text(e.message ?? 'Verification failed')),
+//           );
+//         },
+//         codeSent: (String verificationId, int? resendToken) {
+//           Navigator.push(
+//             context,
+//             MaterialPageRoute(
+//               builder: (_) => OtpScreen(
+//                 verificationId: verificationId,
+//                 name: _nameController.text.trim(),
+//                 email: _emailController.text.trim(),
+//               ),
+//             ),
+//           );
+//         },
+//         codeAutoRetrievalTimeout: (String verificationId) {},
+//       );
+//     } catch (e) {
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(content: Text(e.toString())),
+//       );
+//     } finally {
+//       setState(() => _isLoading = false);
+//     }
+//   }//new
+
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -158,6 +212,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 20),
 
+                //new
+                const Text('Phone Number', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: _inputDecoration('Enter phone number', Icons.phone),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Phone number is required';
+                    if (value.length < 10) return 'Enter valid phone number';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),//new
 
                 const Text('Password', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
