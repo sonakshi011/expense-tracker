@@ -101,7 +101,7 @@ class _CashInScreenState extends State<CashInScreen> {
     if (amountController.text.isEmpty) return;
 
     if (widget.expense == null) {
-      // ── INSERT new expense ──
+
       await DbHelper.instance.insertExpense(
         Expense(
           title: selectedCategory,

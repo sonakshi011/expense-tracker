@@ -38,22 +38,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
     loadSettings();
     loadUserData();
   }
-
+//new
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      bookName = prefs.getString("bookName") ?? "My Book";
-      currency = prefs.getString("currency") ?? "₹";
-      selectedColor = Color(prefs.getInt("themeColor") ?? Colors.teal.value);
-    });
-  }
+    final user = FirebaseAuth.instance.currentUser;
 
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists) {
+        setState(() {
+          bookName = doc['bookName'] ?? "My Book";
+          currency = doc['currency'] ?? "₹";
+          selectedColor =
+              Color(doc['themeColor'] ?? Colors.teal.value);
+        });
+      }
+    } else {
+
+      setState(() {
+        bookName = prefs.getString("bookName") ?? "My Book";
+        currency = prefs.getString("currency") ?? "₹";
+        selectedColor =
+            Color(prefs.getInt("themeColor") ?? Colors.teal.value);
+      });
+    }
+  }//new
+  //
+  // Future<void> loadSettings() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   setState(() {
+  //     bookName = prefs.getString("bookName") ?? "My Book";
+  //     currency = prefs.getString("currency") ?? "₹";
+  //     selectedColor = Color(prefs.getInt("themeColor") ?? Colors.teal.value);
+  //   });
+  // }
+//new
   Future<void> saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
+
     await prefs.setString("bookName", bookName);
     await prefs.setString("currency", currency);
     await prefs.setInt("themeColor", selectedColor.value);
-  }
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({
+        'bookName': bookName,
+        'currency': currency,
+        'themeColor': selectedColor.value,
+      });
+    }
+  }//new
+
+  // Future<void> saveSettings() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   await prefs.setString("bookName", bookName);
+  //   await prefs.setString("currency", currency);
+  //   await prefs.setInt("themeColor", selectedColor.value);
+  // }
 
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
