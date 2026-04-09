@@ -78,11 +78,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await FirebaseAuth.instance.signOut();
       await GoogleSignIn().disconnect();
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
-      );
+      Navigator.of(context).pop();
+      // Navigator.pushAndRemoveUntil(
+      //   context,
+      //   MaterialPageRoute(builder: (_) => const LoginScreen()),
+      //       (route) => false,
+      // );
     }
   }
 
@@ -126,6 +127,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     }
   }//new
+//new
+  Future<void> _editProfile() async {
+    final nameController = TextEditingController(text: name);
+    final phoneController = TextEditingController(text: phone);
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Edit Profile"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: "Name"),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(labelText: "Phone"),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && user != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({
+        'name': nameController.text.trim(),
+        'phone': phoneController.text.trim(),
+      });
+
+      setState(() {
+        name = nameController.text.trim();
+        phone = phoneController.text.trim();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Profile updated successfully"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }//new
 
 
   void selectCurrency() {
@@ -150,8 +212,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: selectedColor,
         elevation: 0,
         leading: const BackButton(color: Colors.white),
-
-
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
@@ -204,20 +264,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(name,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.white),
+                            onPressed: _editProfile,
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 4),
-                      Text(email,
-                          style: const TextStyle(color: Colors.white70)),
+                      Text(email, style: const TextStyle(color: Colors.white70)),
                       const SizedBox(height: 2),
-                      Text(phone,
-                          style: const TextStyle(color: Colors.white70)),
+                      Text(phone, style: const TextStyle(color: Colors.white70)),
                     ],
                   ),
-                ),
+                )
               ],
             ),
           ),//new
