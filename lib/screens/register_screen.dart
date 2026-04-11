@@ -217,6 +217,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _phoneController,
+                  maxLength: 10,
                   keyboardType: TextInputType.phone,
                   decoration: _inputDecoration('Enter phone number', Icons.phone),
                   validator: (value) {
