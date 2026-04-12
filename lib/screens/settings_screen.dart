@@ -17,11 +17,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String bookName = "My Book";
   String currency = "₹";
   Color selectedColor = Colors.teal;
-  //new
   String name = "";
   String email = "";
   String phone = "";
-  bool isLoadingProfile = true;//new
+  //new
+  bool isLoadingProfile = true;
+  bool isLimitEnabled = false;
+  double limitAmount = 0;
+  String limitType = "daily";//new
 
   final List<Color> colors = [
     Colors.red,
@@ -38,27 +41,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
     loadSettings();
     loadUserData();
   }
-//new
+
+  //new
+  void editLimitAmount() {
+    final controller = TextEditingController(text: limitAmount.toString());
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Set Limit Amount"),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() => limitAmount = double.tryParse(controller.text) ?? 0);
+              saveSettings();
+              Navigator.pop(context);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+  //new
+
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      final doc = await FirebaseFirestore.instance
+      final docSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
 
-      if (doc.exists) {
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data()!;
+
         setState(() {
-          bookName = doc['bookName'] ?? "My Book";
-          currency = doc['currency'] ?? "₹";
+          bookName = data['bookName'] ?? "My Book";
+          currency = data['currency'] ?? "₹";
           selectedColor =
-              Color(doc['themeColor'] ?? Colors.teal.value);
+              Color(data['themeColor'] ?? Colors.teal.value);
+
+          // 🔥 ADD THESE (LIMIT SETTINGS)
+          isLimitEnabled = data['isLimitEnabled'] ?? false;
+          limitAmount = (data['limitAmount'] ?? 0).toDouble();
+          limitType = data['limitType'] ?? "daily";
         });
       }
     } else {
-
+      // fallback (local)
       setState(() {
         bookName = prefs.getString("bookName") ?? "My Book";
         currency = prefs.getString("currency") ?? "₹";
@@ -66,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Color(prefs.getInt("themeColor") ?? Colors.teal.value);
       });
     }
-  }//new
+  }
   //
   // Future<void> loadSettings() async {
   //   final prefs = await SharedPreferences.getInstance();
@@ -96,6 +133,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'themeColor': selectedColor.value,
       });
     }
+    //new
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .update({
+      'isLimitEnabled': isLimitEnabled,
+      'limitAmount': limitAmount,
+      'limitType': limitType,//new
+    });
   }//new
 
   // Future<void> saveSettings() async {
@@ -408,6 +454,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: selectCurrency,
             ),
           ),
+          //new
+          const SizedBox(height: 10),
+
+          Container(
+            color: Colors.white,
+            child: Column(
+              children: [
+
+                SwitchListTile(
+                  title: const Text("Enable Expense Limit"),
+                  value: isLimitEnabled,
+                  onChanged: (val) {
+                    setState(() => isLimitEnabled = val);
+                    saveSettings();
+                  },
+                ),
+
+                if (isLimitEnabled) ...[
+                  ListTile(
+                    title: Text("Limit Amount: ₹$limitAmount"),
+                    trailing: const Icon(Icons.edit),
+                    onTap: editLimitAmount,
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: DropdownButton<String>(
+                      value: limitType,
+                      isExpanded: true,
+                      items: ["daily", "weekly", "monthly"]
+                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (val) {
+                        setState(() => limitType = val!);
+                        saveSettings();
+                      },
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),//new
         ],
       ),
     );

@@ -1,8 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../db/db_helper.dart';
 import '../models/expense.dart';
+import '../services/notification_service.dart';
 import '../widgets/pie_chart_widget.dart';
 import '../widgets/transaction_section.dart';
 import '../widgets/bottom_nav_bar.dart';
@@ -26,6 +29,10 @@ class _HomeScreenState extends State<HomeScreen> {
   String bookName = "My Book";
   String currency = "₹";
   Color themeColor = Colors.red;
+  //new
+  bool isLimitEnabled = false;
+  double limitAmount = 0;
+  String limitType = "daily";//new
 
   @override
   void initState() {
@@ -33,7 +40,86 @@ class _HomeScreenState extends State<HomeScreen> {
     loadExpenses();
     loadSettings();
     loadCurrency();
+    loadLimitSettings();
   }
+  //new
+  Future<void> loadLimitSettings() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists) {
+        setState(() {
+          isLimitEnabled = doc['isLimitEnabled'] ?? false;
+          limitAmount = (doc['limitAmount'] ?? 0).toDouble();
+          limitType = doc['limitType'] ?? "daily";
+        });
+      }
+    }
+  }//new
+
+
+//new
+  double calculateLimitExpense() {
+    final now = DateTime.now();
+
+    return expenses.where((e) {
+      final date = DateTime.parse(e.date);
+
+      if (limitType == "daily") {
+        return date.day == now.day &&
+            date.month == now.month &&
+            date.year == now.year;
+      }
+
+      if (limitType == "weekly") {
+        final weekStart = now.subtract(Duration(days: now.weekday - 1));
+        return date.isAfter(weekStart);
+      }
+
+      if (limitType == "monthly") {
+        return date.month == now.month && date.year == now.year;
+      }
+
+      return false;
+    }).fold(0, (sum, e) => sum + e.amount);
+  }//new
+  //new
+  void checkLimit() {
+    if (!isLimitEnabled) return;
+
+    double total = calculateLimitExpense();
+
+    if (total >= limitAmount && limitAmount > 0) {
+      NotificationService.showNotification(
+        "Limit Reached ⚠️",
+        "You reached your $limitType limit of ₹$limitAmount",
+      );
+    }
+  }//new
+  //new
+  // void showLimitAlert() {
+  //   showDialog(
+  //     context: context,
+  //     builder: (_) => AlertDialog(
+  //       title: const Text("Limit Reached ⚠️"),
+  //       content: Text(
+  //         "You have reached your $limitType limit of ₹$limitAmount",
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: const Text("OK"),
+  //         )
+  //       ],
+  //     ),
+  //   );
+  // }//new
+
 
   void loadCurrency() async {
     final prefs = await SharedPreferences.getInstance();
@@ -168,11 +254,19 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (index == 1) {
             final result = await Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const CashInScreen()));
-            if (result == true) loadExpenses();
+            //new
+            if (result == true) {
+              await loadExpenses();
+              checkLimit();//new
+            }
           } else if (index == 2) {
             final result = await Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const CashOutScreen()));
-            if (result == true) loadExpenses();
+            //new
+            if (result == true) {
+              await loadExpenses();
+              checkLimit();
+            }//new
           } else if (index == 3) {
             Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
