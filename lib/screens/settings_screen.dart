@@ -20,11 +20,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String name = "";
   String email = "";
   String phone = "";
-  //new
   bool isLoadingProfile = true;
+
   bool isLimitEnabled = false;
   double limitAmount = 0;
-  String limitType = "daily";//new
+  String limitType = "daily";
 
   final List<Color> colors = [
     Colors.red,
@@ -42,33 +42,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     loadUserData();
   }
 
-  //new
-  void editLimitAmount() {
-    final controller = TextEditingController(text: limitAmount.toString());
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Set Limit Amount"),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() => limitAmount = double.tryParse(controller.text) ?? 0);
-              saveSettings();
-              Navigator.pop(context);
-            },
-            child: const Text("Save"),
-          ),
-        ],
-      ),
-    );
-  }
-  //new
-
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final user = FirebaseAuth.instance.currentUser;
@@ -81,47 +54,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (docSnapshot.exists) {
         final data = docSnapshot.data()!;
-
         setState(() {
           bookName = data['bookName'] ?? "My Book";
           currency = data['currency'] ?? "₹";
-          selectedColor =
-              Color(data['themeColor'] ?? Colors.teal.value);
-
-          // 🔥 ADD THESE (LIMIT SETTINGS)
+          selectedColor = Color(data['themeColor'] ?? Colors.teal.value);
           isLimitEnabled = data['isLimitEnabled'] ?? false;
           limitAmount = (data['limitAmount'] ?? 0).toDouble();
           limitType = data['limitType'] ?? "daily";
         });
       }
     } else {
-      // fallback (local)
       setState(() {
         bookName = prefs.getString("bookName") ?? "My Book";
         currency = prefs.getString("currency") ?? "₹";
-        selectedColor =
-            Color(prefs.getInt("themeColor") ?? Colors.teal.value);
+        selectedColor = Color(prefs.getInt("themeColor") ?? Colors.teal.value);
       });
     }
   }
-  //
-  // Future<void> loadSettings() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   setState(() {
-  //     bookName = prefs.getString("bookName") ?? "My Book";
-  //     currency = prefs.getString("currency") ?? "₹";
-  //     selectedColor = Color(prefs.getInt("themeColor") ?? Colors.teal.value);
-  //   });
-  // }
-//new
+
   Future<void> saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    final user = FirebaseAuth.instance.currentUser;
 
     await prefs.setString("bookName", bookName);
     await prefs.setString("currency", currency);
     await prefs.setInt("themeColor", selectedColor.value);
-
-    final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
       await FirebaseFirestore.instance
@@ -131,25 +88,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'bookName': bookName,
         'currency': currency,
         'themeColor': selectedColor.value,
+        'isLimitEnabled': isLimitEnabled,
+        'limitAmount': limitAmount,
+        'limitType': limitType,
       });
     }
-    //new
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user!.uid)
-        .update({
-      'isLimitEnabled': isLimitEnabled,
-      'limitAmount': limitAmount,
-      'limitType': limitType,//new
-    });
-  }//new
+  }
 
-  // Future<void> saveSettings() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   await prefs.setString("bookName", bookName);
-  //   await prefs.setString("currency", currency);
-  //   await prefs.setInt("themeColor", selectedColor.value);
-  // }
+  Future<void> loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists) {
+        setState(() {
+          name = doc['name'] ?? "";
+          email = doc['email'] ?? "";
+          phone = doc['phone'] ?? "";
+          isLoadingProfile = false;
+        });
+      } else {
+        setState(() => isLoadingProfile = false);
+      }
+    }
+  }
 
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
@@ -173,13 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (confirm == true) {
       await FirebaseAuth.instance.signOut();
       await GoogleSignIn().disconnect();
-
-      Navigator.of(context).pop();
-      // Navigator.pushAndRemoveUntil(
-      //   context,
-      //   MaterialPageRoute(builder: (_) => const LoginScreen()),
-      //       (route) => false,
-      // );
+      if (mounted) Navigator.of(context).pop();
     }
   }
 
@@ -203,31 +163,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-//new
-  Future<void> loadUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
 
-    if (user != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+  void editLimitAmount() {
+    final controller = TextEditingController(
+      text: limitAmount > 0 ? limitAmount.toStringAsFixed(0) : '',
+    );
 
-      if (doc.exists) {
-        setState(() {
-          name = doc['name'] ?? "";
-          email = doc['email'] ?? "";
-          phone = doc['phone'] ?? "";
-          isLoadingProfile = false;
-        });
-      }
-    }
-  }//new
-//new
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Set Limit Amount"),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            prefixText: "$currency ",
+            hintText: "Enter amount",
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final parsed = double.tryParse(controller.text);
+              if (parsed != null && parsed > 0) {
+                setState(() => limitAmount = parsed);
+                saveSettings();
+              }
+              Navigator.pop(context);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _editProfile() async {
     final nameController = TextEditingController(text: name);
     final phoneController = TextEditingController(text: phone);
-
     final user = FirebaseAuth.instance.currentUser;
 
     final result = await showDialog<bool>(
@@ -276,15 +254,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         phone = phoneController.text.trim();
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Profile updated successfully"),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Profile updated successfully"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     }
-  }//new
-
+  }
 
   void selectCurrency() {
     showCurrencyPicker(
@@ -303,7 +282,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
-
       appBar: AppBar(
         backgroundColor: selectedColor,
         elevation: 0,
@@ -312,9 +290,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             onSelected: (value) {
-              if (value == 'logout') {
-                _logout();
-              }
+              if (value == 'logout') _logout();
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
@@ -335,7 +311,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       body: ListView(
         children: [
-          //new
+
           Container(
             color: selectedColor,
             padding: const EdgeInsets.all(20),
@@ -385,10 +361,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(phone, style: const TextStyle(color: Colors.white70)),
                     ],
                   ),
-                )
+                ),
               ],
             ),
-          ),//new
+          ),
+
 
           Container(
             color: Colors.white,
@@ -409,7 +386,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           const SizedBox(height: 15),
-
 
           Container(
             color: Colors.white,
@@ -444,7 +420,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 10),
 
-
           Container(
             color: Colors.white,
             child: ListTile(
@@ -454,17 +429,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: selectCurrency,
             ),
           ),
-          //new
+
           const SizedBox(height: 10),
 
           Container(
             color: Colors.white,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 SwitchListTile(
-                  title: const Text("Enable Expense Limit"),
+                  title: const Text(
+                    "Enable Expense Limit",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text(
+                    "Get notified when you reach your spending limit",
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                   value: isLimitEnabled,
+                  activeColor: selectedColor,
                   onChanged: (val) {
                     setState(() => isLimitEnabled = val);
                     saveSettings();
@@ -472,30 +455,109 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
 
                 if (isLimitEnabled) ...[
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Limit Period",
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: ["daily", "weekly", "monthly"].map((type) {
+                            final isSelected = limitType == type;
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() => limitType = type);
+                                  saveSettings();
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? selectedColor : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isSelected ? selectedColor : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      type[0].toUpperCase() + type.substring(1),
+                                      style: TextStyle(
+                                        color: isSelected ? Colors.white : Colors.black87,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+
+                  // Limit Amount
                   ListTile(
-                    title: Text("Limit Amount: ₹$limitAmount"),
-                    trailing: const Icon(Icons.edit),
+                    leading: Icon(Icons.account_balance_wallet_outlined, color: selectedColor),
+                    title: const Text("Limit Amount"),
+                    subtitle: Text(
+                      limitAmount > 0
+                          ? "$currency${limitAmount.toStringAsFixed(0)}"
+                          : "Tap to set amount",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: limitAmount > 0 ? Colors.black87 : Colors.grey,
+                      ),
+                    ),
+                    trailing: Icon(Icons.edit, color: selectedColor),
                     onTap: editLimitAmount,
                   ),
 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: DropdownButton<String>(
-                      value: limitType,
-                      isExpanded: true,
-                      items: ["daily", "weekly", "monthly"]
-                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                          .toList(),
-                      onChanged: (val) {
-                        setState(() => limitType = val!);
-                        saveSettings();
-                      },
+
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: selectedColor.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: selectedColor.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: selectedColor, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            limitAmount > 0
+                                ? "You'll be notified when $limitType expenses reach $currency${limitAmount.toStringAsFixed(0)}. Spending more after that triggers 4 alerts."
+                                : "Please set a limit amount to enable notifications.",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: selectedColor.withOpacity(0.8),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ],
             ),
-          ),//new
+          ),
+
+          const SizedBox(height: 20),
         ],
       ),
     );

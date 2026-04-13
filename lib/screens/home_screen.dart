@@ -13,7 +13,6 @@ import '../screens/cash_in_screen.dart';
 import '../screens/cash_out_screen.dart';
 import '../screens/settings_screen.dart';
 
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -29,10 +28,13 @@ class _HomeScreenState extends State<HomeScreen> {
   String bookName = "My Book";
   String currency = "₹";
   Color themeColor = Colors.red;
-  //new
+
   bool isLimitEnabled = false;
   double limitAmount = 0;
-  String limitType = "daily";//new
+  String limitType = "daily";
+
+
+  bool _wasAlreadyOverLimit = false;
 
   @override
   void initState() {
@@ -42,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
     loadCurrency();
     loadLimitSettings();
   }
-  //new
+
   Future<void> loadLimitSettings() async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -60,14 +62,14 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
-  }//new
+  }
 
-
-//new
-  double calculateLimitExpense() {
+  double calculatePeriodTotal() {
     final now = DateTime.now();
 
-    return expenses.where((e) {
+    return expenses
+        .where((e) {
+      if (e.type != "expense") return false;
       final date = DateTime.parse(e.date);
 
       if (limitType == "daily") {
@@ -75,51 +77,49 @@ class _HomeScreenState extends State<HomeScreen> {
             date.month == now.month &&
             date.year == now.year;
       }
-
       if (limitType == "weekly") {
         final weekStart = now.subtract(Duration(days: now.weekday - 1));
-        return date.isAfter(weekStart);
+        final weekStartDay = DateTime(weekStart.year, weekStart.month, weekStart.day);
+        return !date.isBefore(weekStartDay);
       }
-
       if (limitType == "monthly") {
         return date.month == now.month && date.year == now.year;
       }
-
       return false;
-    }).fold(0, (sum, e) => sum + e.amount);
-  }//new
-  //new
-  void checkLimit() {
-    if (!isLimitEnabled) return;
+    })
+        .fold(0.0, (sum, e) => sum + e.amount);
+  }
 
-    double total = calculateLimitExpense();
+  void snapshotLimitStatus() {
+    if (!isLimitEnabled || limitAmount <= 0) return;
+    _wasAlreadyOverLimit = calculatePeriodTotal() >= limitAmount;
+  }
 
-    if (total >= limitAmount && limitAmount > 0) {
-      NotificationService.showNotification(
-        "Limit Reached ⚠️",
-        "You reached your $limitType limit of ₹$limitAmount",
-      );
+
+  Future<void> checkLimitAfterCashOut() async {
+    if (!isLimitEnabled || limitAmount <= 0) return;
+
+    final total = calculatePeriodTotal();
+
+    if (total >= limitAmount) {
+      if (!_wasAlreadyOverLimit) {
+
+        await NotificationService.showLimitReachedNotification(
+          limitType: limitType,
+          limitAmount: limitAmount,
+          currency: currency,
+        );
+      } else {
+
+        await NotificationService.showOverLimitCashOutNotifications(
+          limitType: limitType,
+          limitAmount: limitAmount,
+          totalSpent: total,
+          currency: currency,
+        );
+      }
     }
-  }//new
-  //new
-  // void showLimitAlert() {
-  //   showDialog(
-  //     context: context,
-  //     builder: (_) => AlertDialog(
-  //       title: const Text("Limit Reached ⚠️"),
-  //       content: Text(
-  //         "You have reached your $limitType limit of ₹$limitAmount",
-  //       ),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(context),
-  //           child: const Text("OK"),
-  //         )
-  //       ],
-  //     ),
-  //   );
-  // }//new
-
+  }
 
   void loadCurrency() async {
     final prefs = await SharedPreferences.getInstance();
@@ -153,8 +153,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Column(
         children: [
-
-
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(top: 50, bottom: 20),
@@ -187,7 +185,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-
 
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -229,7 +226,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-
           Expanded(
             child: isChartView
                 ? PieChartWidget(expenses: expenses, selectedMonth: selectedMonth)
@@ -254,22 +250,23 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (index == 1) {
             final result = await Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const CashInScreen()));
-            //new
             if (result == true) {
               await loadExpenses();
-              checkLimit();//new
             }
           } else if (index == 2) {
+
+            snapshotLimitStatus();
             final result = await Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const CashOutScreen()));
-            //new
             if (result == true) {
               await loadExpenses();
-              checkLimit();
-            }//new
+              await loadLimitSettings();
+              await checkLimitAfterCashOut();
+            }
           } else if (index == 3) {
-            Navigator.push(
+            await Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            await loadLimitSettings();
             loadCurrency();
             loadSettings();
           }
@@ -291,8 +288,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String getMonthName(int month) {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
     return months[month - 1];
   }
 

@@ -171,15 +171,33 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
 
 
+                // Center(
+                //   child: Container(
+                //     padding: const EdgeInsets.all(20),
+                //     decoration: BoxDecoration(
+                //       color: Colors.blue.shade50,
+                //       shape: BoxShape.circle,
+                //     ),
+                //     child: Icon(Icons.account_balance_wallet,
+                //         size: 60, color: Colors.blue.shade700),
+                //   ),
+                // ),
+                // const SizedBox(height: 30),
                 Center(
                   child: Container(
                     padding: const EdgeInsets.all(20),
+                    width: 100,
+                    height: 100,
                     decoration: BoxDecoration(
                       color: Colors.blue.shade50,
                       shape: BoxShape.circle,
+
+                      image: const DecorationImage(
+                        image: AssetImage('assets/logo.png'),
+                        fit: BoxFit.cover,
+                      ),
                     ),
-                    child: Icon(Icons.account_balance_wallet,
-                        size: 60, color: Colors.blue.shade700),
+                    // Icon is removed
                   ),
                 ),
                 const SizedBox(height: 30),
