@@ -507,7 +507,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const Divider(height: 1, indent: 16, endIndent: 16),
 
-                  // Limit Amount
                   ListTile(
                     leading: Icon(Icons.account_balance_wallet_outlined, color: selectedColor),
                     title: const Text("Limit Amount"),
@@ -518,6 +517,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
+
                         color: limitAmount > 0 ? Colors.black87 : Colors.grey,
                       ),
                     ),

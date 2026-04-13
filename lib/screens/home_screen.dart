@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String limitType = "daily";
 
 
-  bool _wasAlreadyOverLimit = false;
+  // bool _wasAlreadyOverLimit = false;
 
   @override
   void initState() {
@@ -90,10 +90,10 @@ class _HomeScreenState extends State<HomeScreen> {
         .fold(0.0, (sum, e) => sum + e.amount);
   }
 
-  void snapshotLimitStatus() {
-    if (!isLimitEnabled || limitAmount <= 0) return;
-    _wasAlreadyOverLimit = calculatePeriodTotal() >= limitAmount;
-  }
+  // void snapshotLimitStatus() {
+  //   if (!isLimitEnabled || limitAmount <= 0) return;
+  //   _wasAlreadyOverLimit = calculatePeriodTotal() >= limitAmount;
+  // }
 
 
   Future<void> checkLimitAfterCashOut() async {
@@ -102,22 +102,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final total = calculatePeriodTotal();
 
     if (total >= limitAmount) {
-      if (!_wasAlreadyOverLimit) {
-
-        await NotificationService.showLimitReachedNotification(
-          limitType: limitType,
-          limitAmount: limitAmount,
-          currency: currency,
-        );
-      } else {
-
-        await NotificationService.showOverLimitCashOutNotifications(
-          limitType: limitType,
-          limitAmount: limitAmount,
-          totalSpent: total,
-          currency: currency,
-        );
-      }
+      await NotificationService.showLimitReachedNotification(
+        limitType: limitType,
+        limitAmount: limitAmount,
+        currency: currency,
+      );
     }
   }
 
@@ -255,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
             }
           } else if (index == 2) {
 
-            snapshotLimitStatus();
+            // snapshotLimitStatus();
             final result = await Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const CashOutScreen()));
             if (result == true) {
