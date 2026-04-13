@@ -84,11 +84,11 @@ class _TransactionSectionState extends State<TransactionSection> {
                 final e = items[index];
 
                 return Dismissible(
-                  // CHANGE: use firestoreId as unique key (was e.id.toString())
+
                   key: Key(e.firestoreId ?? UniqueKey().toString()),
 
                   onDismissed: (_) async {
-                    // CHANGE: pass firestoreId (String) instead of int id
+
                     await DbHelper.instance.deleteExpense(e.firestoreId!);
                     widget.onRefresh();
                     ScaffoldMessenger.of(context).showSnackBar(

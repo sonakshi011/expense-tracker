@@ -197,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         fit: BoxFit.cover,
                       ),
                     ),
-                    // Icon is removed
+
                   ),
                 ),
                 const SizedBox(height: 30),

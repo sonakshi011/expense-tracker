@@ -43,6 +43,52 @@ class BottomNavBar extends StatelessWidget {
     );
   }
 
+  // Widget buildItem(IconData icon, String label, int index) {
+  //   final isSelected = currentIndex == index;
+  //
+  //   Color getBaseColor() {
+  //     if (index == 1) return Colors.green;
+  //     if (index == 2) return Colors.red;
+  //     return isSelected ? Colors.deepPurple : Colors.grey.shade600;
+  //   }
+  //
+  //   return Expanded(
+  //     child: GestureDetector(
+  //       onTap: () => onTap(index),
+  //       behavior: HitTestBehavior.opaque,
+  //       child: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //
+  //           AnimatedContainer(
+  //             duration: const Duration(milliseconds: 200),
+  //             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+  //             decoration: BoxDecoration(
+  //
+  //               color: isSelected ? getBaseColor().withOpacity(0.1) : Colors
+  //                   .transparent,
+  //               borderRadius: BorderRadius.circular(20),
+  //             ),
+  //             child: Icon(
+  //               icon,
+  //               size: 26,
+  //               color: getBaseColor(),
+  //             ),
+  //           ),
+  //           const SizedBox(height: 4),
+  //           Text(
+  //             label,
+  //             style: TextStyle(
+  //               fontSize: 11,
+  //               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+  //               color: getBaseColor(),
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
   Widget buildItem(IconData icon, String label, int index) {
     final isSelected = currentIndex == index;
 
@@ -52,40 +98,37 @@ class BottomNavBar extends StatelessWidget {
       return isSelected ? Colors.deepPurple : Colors.grey.shade600;
     }
 
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => onTap(index),
-        behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-
-                color: isSelected ? getBaseColor().withOpacity(0.1) : Colors
-                    .transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(
-                icon,
-                size: 26,
-                color: getBaseColor(),
-              ),
+    return GestureDetector(
+      onTap: () => onTap(index),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? getBaseColor().withOpacity(0.1)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: getBaseColor(),
-              ),
+            child: Icon(
+              icon,
+              size: 26,
+              color: getBaseColor(),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: getBaseColor(),
+            ),
+          ),
+        ],
       ),
     );
   }
