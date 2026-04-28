@@ -58,6 +58,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "70707675373-66nmo25i0bd0uof8oe1t14l3pd8983b7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sonakshi.spendwise",
+            "certificate_hash": "c978fec24750778a9da6454a8ab674f5986ae20b"
+          }
+        },
+        {
+          "client_id": "70707675373-msaq6og289cmkei4f6hes09ctrc216kc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sonakshi.spendwise",
+            "certificate_hash": "ec2165a5acc39444041365e0d9ef256221f9b677"
+          }
+        },
+        {
           "client_id": "70707675373-sds2u1m3qt2ek794s494c49du32g39ru.apps.googleusercontent.com",
           "client_type": 3
         }
