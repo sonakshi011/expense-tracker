@@ -244,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
             }
           } else if (index == 2) {
 
-            // snapshotLimitStatus();
+
             final result = await Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const CashOutScreen()));
             if (result == true) {
