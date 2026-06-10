@@ -7,7 +7,13 @@ class DbHelper {
   static final DbHelper instance = DbHelper._init();
   DbHelper._init();
 
-  String get _userId => FirebaseAuth.instance.currentUser!.uid;
+  String get _userId {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('User is not logged in');
+    }
+    return user.uid;
+  }
 
   CollectionReference get _expensesRef => FirebaseFirestore.instance
       .collection('users')

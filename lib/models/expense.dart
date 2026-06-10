@@ -28,11 +28,14 @@ class Expense {
   factory Expense.fromFirestore(String docId, Map<String, dynamic> map) {
     return Expense(
       firestoreId: docId,
-      title: map['title'] ?? '',
+      // Bug fix: title was missing fallback to category when empty
+      title: (map['title'] as String? ?? '').isNotEmpty
+          ? map['title'] as String
+          : map['category'] as String? ?? '',
       amount: (map['amount'] as num).toDouble(),
-      type: map['type'] ?? 'expense',
-      category: map['category'] ?? '',
-      date: map['date'] ?? '',
+      type: map['type'] as String? ?? 'expense',
+      category: map['category'] as String? ?? '',
+      date: map['date'] as String? ?? DateTime.now().toIso8601String(),
     );
   }
 
@@ -48,11 +51,31 @@ class Expense {
 
   factory Expense.fromMap(Map<String, dynamic> map) {
     return Expense(
-      title: map['title'],
-      amount: map['amount'],
-      type: map['type'],
-      category: map['category'],
-      date: map['date'],
+      title: (map['title'] as String? ?? '').isNotEmpty
+          ? map['title'] as String
+          : map['category'] as String? ?? '',
+      amount: (map['amount'] as num).toDouble(),
+      type: map['type'] as String? ?? 'expense',
+      category: map['category'] as String? ?? '',
+      date: map['date'] as String? ?? DateTime.now().toIso8601String(),
+    );
+  }
+
+  Expense copyWith({
+    String? firestoreId,
+    String? title,
+    double? amount,
+    String? type,
+    String? category,
+    String? date,
+  }) {
+    return Expense(
+      firestoreId: firestoreId ?? this.firestoreId,
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      type: type ?? this.type,
+      category: category ?? this.category,
+      date: date ?? this.date,
     );
   }
 }

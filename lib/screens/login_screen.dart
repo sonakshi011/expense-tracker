@@ -29,8 +29,6 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      //new
-      UserCredential userCredential =
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -71,13 +69,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                     await cred.user!.sendEmailVerification();
                     await FirebaseAuth.instance.signOut();
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Verification email resent!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Verification email resent!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
                   },
                   child: const Text('Resend Email'),
                 ),
@@ -126,8 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isGoogleLoading = false);
         return;
       }
-      User? user = FirebaseAuth.instance.currentUser;
-      print(user);
+
       final GoogleSignInAuthentication googleAuth =
       await googleUser.authentication;
 

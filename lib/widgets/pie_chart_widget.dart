@@ -298,7 +298,7 @@ class _PieChartWidgetState extends State<PieChartWidget> {
                 margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? (categoryColors[e.key] ?? Colors.grey).withOpacity(0.2)
+                      ? (categoryColors[e.key] ?? Colors.grey).withValues(alpha: 0.2)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                 ),

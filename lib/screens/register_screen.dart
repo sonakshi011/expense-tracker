@@ -1,7 +1,5 @@
-// import 'package:expense_tracker/screens/otp_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -85,7 +83,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
 
 
-        Navigator.pop(context);
+        if (mounted) Navigator.pop(context);
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Something went wrong';

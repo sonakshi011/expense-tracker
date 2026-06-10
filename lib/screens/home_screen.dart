@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../db/db_helper.dart';
 import '../models/expense.dart';
 import '../services/notification_service.dart';
+import '../services/export_service.dart';
 import '../widgets/pie_chart_widget.dart';
 import '../widgets/transaction_section.dart';
 import '../widgets/bottom_nav_bar.dart';
@@ -25,16 +26,13 @@ class _HomeScreenState extends State<HomeScreen> {
   int selectedIndex = 0;
   DateTime selectedMonth = DateTime.now();
   bool isChartView = true;
-  String bookName = "My Book";
-  String currency = "₹";
+  String bookName = 'My Book';
+  String currency = '₹';
   Color themeColor = Colors.red;
 
   bool isLimitEnabled = false;
   double limitAmount = 0;
-  String limitType = "daily";
-
-
-  // bool _wasAlreadyOverLimit = false;
+  String limitType = 'daily';
 
   @override
   void initState() {
@@ -47,60 +45,50 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> loadLimitSettings() async {
     final user = FirebaseAuth.instance.currentUser;
-
     if (user != null) {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
-
       if (doc.exists) {
-        setState(() {
-          isLimitEnabled = doc['isLimitEnabled'] ?? false;
-          limitAmount = (doc['limitAmount'] ?? 0).toDouble();
-          limitType = doc['limitType'] ?? "daily";
-        });
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data != null) {
+          setState(() {
+            isLimitEnabled = data['isLimitEnabled'] ?? false;
+            limitAmount = (data['limitAmount'] ?? 0).toDouble();
+            limitType = data['limitType'] ?? 'daily';
+          });
+        }
       }
     }
   }
 
   double calculatePeriodTotal() {
     final now = DateTime.now();
-
-    return expenses
-        .where((e) {
-      if (e.type != "expense") return false;
+    return expenses.where((e) {
+      if (e.type != 'expense') return false;
       final date = DateTime.parse(e.date);
-
-      if (limitType == "daily") {
+      if (limitType == 'daily') {
         return date.day == now.day &&
             date.month == now.month &&
             date.year == now.year;
       }
-      if (limitType == "weekly") {
+      if (limitType == 'weekly') {
         final weekStart = now.subtract(Duration(days: now.weekday - 1));
-        final weekStartDay = DateTime(weekStart.year, weekStart.month, weekStart.day);
+        final weekStartDay =
+            DateTime(weekStart.year, weekStart.month, weekStart.day);
         return !date.isBefore(weekStartDay);
       }
-      if (limitType == "monthly") {
+      if (limitType == 'monthly') {
         return date.month == now.month && date.year == now.year;
       }
       return false;
-    })
-        .fold(0.0, (sum, e) => sum + e.amount);
+    }).fold(0.0, (sum, e) => sum + e.amount);
   }
-
-  // void snapshotLimitStatus() {
-  //   if (!isLimitEnabled || limitAmount <= 0) return;
-  //   _wasAlreadyOverLimit = calculatePeriodTotal() >= limitAmount;
-  // }
-
 
   Future<void> checkLimitAfterCashOut() async {
     if (!isLimitEnabled || limitAmount <= 0) return;
-
     final total = calculatePeriodTotal();
-
     if (total >= limitAmount) {
       await NotificationService.showLimitReachedNotification(
         limitType: limitType,
@@ -112,15 +100,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void loadCurrency() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() => currency = prefs.getString("currency") ?? "₹");
+    setState(() => currency = prefs.getString('currency') ?? '₹');
   }
 
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      bookName = prefs.getString("bookName") ?? "My Book";
-      currency = prefs.getString("currency") ?? "₹";
-      themeColor = Color(prefs.getInt("themeColor") ?? Colors.red.value);
+      bookName = prefs.getString('bookName') ?? 'My Book';
+      currency = prefs.getString('currency') ?? '₹';
+      themeColor = Color(prefs.getInt('themeColor') ?? Colors.red.toARGB32());
     });
   }
 
@@ -130,51 +118,202 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   double getTotalIncome() =>
-      expenses.where((e) => e.type == "income").fold(0, (sum, e) => sum + e.amount);
+      expenses.where((e) => e.type == 'income').fold(0, (sum, e) => sum + e.amount);
 
   double getTotalExpense() =>
-      expenses.where((e) => e.type == "expense").fold(0, (sum, e) => sum + e.amount);
+      expenses.where((e) => e.type == 'expense').fold(0, (sum, e) => sum + e.amount);
 
   double getBalance() => getTotalIncome() - getTotalExpense();
+
+  // ─── Export Bottom Sheet ──────────────────────────────────────────────────
+
+  void _showExportSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Export Transactions',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const Divider(height: 1),
+
+                // Export current month PDF
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                  ),
+                  title: const Text('Export This Month as PDF'),
+                  subtitle: Text(
+                      '${getMonthName(selectedMonth.month)} ${selectedMonth.year}'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ExportService.exportPDF(
+                      context: context,
+                      expenses: expenses,
+                      currency: currency,
+                      bookName: bookName,
+                      filterMonth: selectedMonth,
+                    );
+                  },
+                ),
+
+                // Export all PDF
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                  ),
+                  title: const Text('Export All Transactions as PDF'),
+                  subtitle: const Text('All time'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ExportService.exportPDF(
+                      context: context,
+                      expenses: expenses,
+                      currency: currency,
+                      bookName: bookName,
+                    );
+                  },
+                ),
+
+                const Divider(height: 1),
+
+                // Export current month CSV
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.table_chart, color: Colors.green),
+                  ),
+                  title: const Text('Export This Month as CSV'),
+                  subtitle: Text(
+                      '${getMonthName(selectedMonth.month)} ${selectedMonth.year}'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ExportService.exportCSV(
+                      context: context,
+                      expenses: expenses,
+                      currency: currency,
+                      bookName: bookName,
+                      filterMonth: selectedMonth,
+                    );
+                  },
+                ),
+
+                // Export all CSV
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.table_chart_outlined, color: Colors.teal),
+                  ),
+                  title: const Text('Export All Transactions as CSV'),
+                  subtitle: const Text('All time'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ExportService.exportCSV(
+                      context: context,
+                      expenses: expenses,
+                      currency: currency,
+                      bookName: bookName,
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
+          // Header
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(top: 50, bottom: 20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [themeColor, themeColor.withOpacity(0.7)],
+                colors: [themeColor, themeColor.withValues(alpha: 0.7)],
               ),
             ),
             child: Column(
               children: [
-                Text(
-                  bookName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      bookName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Export icon in header
+                    GestureDetector(
+                      onTap: _showExportSheet,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(Icons.ios_share,
+                            color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 15),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    buildItem(getTotalIncome(), "Cash In"),
-                    const Text("-", style: whiteSymbol),
-                    buildItem(getTotalExpense(), "Cash Out"),
-                    const Text("=", style: whiteSymbol),
-                    buildItem(getBalance(), "Balance"),
+                    buildItem(getTotalIncome(), 'Cash In'),
+                    const Text('-', style: whiteSymbol),
+                    buildItem(getTotalExpense(), 'Cash Out'),
+                    const Text('=', style: whiteSymbol),
+                    buildItem(getBalance(), 'Balance'),
                   ],
                 ),
               ],
             ),
           ),
 
+          // Month nav
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
             color: Colors.white,
@@ -185,7 +324,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: const Icon(Icons.arrow_back),
                   onPressed: () {
                     setState(() {
-                      selectedMonth = DateTime(selectedMonth.year, selectedMonth.month - 1);
+                      selectedMonth = DateTime(
+                          selectedMonth.year, selectedMonth.month - 1);
                     });
                   },
                 ),
@@ -196,8 +336,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       const Icon(Icons.calendar_month, size: 18),
                       const SizedBox(width: 6),
                       Text(
-                        "${getMonthName(selectedMonth.month)} ${selectedMonth.year}",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        '${getMonthName(selectedMonth.month)} ${selectedMonth.year}',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                       const Icon(Icons.arrow_drop_down),
                     ],
@@ -207,7 +348,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: const Icon(Icons.arrow_forward),
                   onPressed: () {
                     setState(() {
-                      selectedMonth = DateTime(selectedMonth.year, selectedMonth.month + 1);
+                      selectedMonth = DateTime(
+                          selectedMonth.year, selectedMonth.month + 1);
                     });
                   },
                 ),
@@ -217,12 +359,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
           Expanded(
             child: isChartView
-                ? PieChartWidget(expenses: expenses, selectedMonth: selectedMonth)
+                ? PieChartWidget(
+                    expenses: expenses, selectedMonth: selectedMonth)
                 : TransactionSection(
-              expenses: expenses,
-              onRefresh: loadExpenses,
-              selectedMonth: selectedMonth,
-            ),
+                    expenses: expenses,
+                    onRefresh: loadExpenses,
+                    selectedMonth: selectedMonth,
+                  ),
           ),
         ],
       ),
@@ -237,24 +380,20 @@ class _HomeScreenState extends State<HomeScreen> {
               selectedIndex = 0;
             });
           } else if (index == 1) {
-            final result = await Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const CashInScreen()));
-            if (result == true) {
-              await loadExpenses();
-            }
+            final result = await Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const CashInScreen()));
+            if (result == true) await loadExpenses();
           } else if (index == 2) {
-
-
-            final result = await Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const CashOutScreen()));
+            final result = await Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const CashOutScreen()));
             if (result == true) {
               await loadExpenses();
               await loadLimitSettings();
               await checkLimitAfterCashOut();
             }
           } else if (index == 3) {
-            await Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            await Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()));
             await loadLimitSettings();
             loadCurrency();
             loadSettings();
@@ -269,7 +408,8 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Text(
           value.toStringAsFixed(0),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold),
         ),
         Text(title, style: const TextStyle(color: Colors.white70)),
       ],
@@ -278,15 +418,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String getMonthName(int month) {
     const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return months[month - 1];
   }
 
   Future<void> openMonthYearPicker() async {
     int tempYear = selectedMonth.year;
-
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -309,7 +448,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           final pickedYear = await showDialog<int>(
                             context: context,
                             builder: (_) => AlertDialog(
-                              title: const Text("Select Year"),
+                              title: const Text('Select Year'),
                               content: SizedBox(
                                 height: 200,
                                 width: 200,
@@ -319,7 +458,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     int year = 2000 + index;
                                     return ListTile(
                                       title: Text(year.toString()),
-                                      onTap: () => Navigator.pop(context, year),
+                                      onTap: () =>
+                                          Navigator.pop(context, year),
                                     );
                                   },
                                 ),
@@ -331,7 +471,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           }
                         },
                         child: Text(tempYear.toString(),
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
                       ),
                       IconButton(
                         icon: const Icon(Icons.arrow_forward),
@@ -342,11 +483,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: GridView.builder(
                       itemCount: 12,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4),
                       itemBuilder: (context, index) {
                         return GestureDetector(
                           onTap: () {
-                            setState(() => selectedMonth = DateTime(tempYear, index + 1));
+                            setState(() => selectedMonth =
+                                DateTime(tempYear, index + 1));
                             Navigator.pop(context);
                           },
                           child: Center(
@@ -367,4 +511,5 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-const whiteSymbol = TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold);
+const whiteSymbol = TextStyle(
+    color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold);

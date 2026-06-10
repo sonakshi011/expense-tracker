@@ -1,6 +1,6 @@
-
 plugins {
-    id("com.google.gms.google-services") version "4.3.15" apply false}
+    id("com.google.gms.google-services") version "4.3.15" apply false
+}
 
 allprojects {
     repositories {
@@ -8,6 +8,16 @@ allprojects {
         mavenCentral()
     }
 }
+
+//subprojects {
+//    configurations.configureEach {
+//        resolutionStrategy {
+//            force("org.jetbrains.kotlin:kotlin-stdlib:1.9.25")
+//            force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.25")
+//            force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25")
+//        }
+//    }
+//}
 
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory

@@ -57,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() {
           bookName = data['bookName'] ?? "My Book";
           currency = data['currency'] ?? "₹";
-          selectedColor = Color(data['themeColor'] ?? Colors.teal.value);
+          selectedColor = Color(data['themeColor'] ?? Colors.teal.toARGB32());
           isLimitEnabled = data['isLimitEnabled'] ?? false;
           limitAmount = (data['limitAmount'] ?? 0).toDouble();
           limitType = data['limitType'] ?? "daily";
@@ -67,7 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         bookName = prefs.getString("bookName") ?? "My Book";
         currency = prefs.getString("currency") ?? "₹";
-        selectedColor = Color(prefs.getInt("themeColor") ?? Colors.teal.value);
+        selectedColor = Color(prefs.getInt("themeColor") ?? Colors.teal.toARGB32());
       });
     }
   }
@@ -78,7 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     await prefs.setString("bookName", bookName);
     await prefs.setString("currency", currency);
-    await prefs.setInt("themeColor", selectedColor.value);
+    await prefs.setInt("themeColor", selectedColor.toARGB32());
 
     if (user != null) {
       await FirebaseFirestore.instance
@@ -87,7 +87,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           .update({
         'bookName': bookName,
         'currency': currency,
-        'themeColor': selectedColor.value,
+        'themeColor': selectedColor.toARGB32(),
         'isLimitEnabled': isLimitEnabled,
         'limitAmount': limitAmount,
         'limitType': limitType,
@@ -105,12 +105,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           .get();
 
       if (doc.exists) {
-        setState(() {
-          name = doc['name'] ?? "";
-          email = doc['email'] ?? "";
-          phone = doc['phone'] ?? "";
-          isLoadingProfile = false;
-        });
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data != null) {
+          setState(() {
+            name = data['name'] ?? "";
+            email = data['email'] ?? "";
+            phone = data['phone'] ?? "";
+            isLoadingProfile = false;
+          });
+        } else {
+          setState(() => isLoadingProfile = false);
+        }
       } else {
         setState(() => isLoadingProfile = false);
       }
@@ -530,9 +535,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: selectedColor.withOpacity(0.08),
+                      color: selectedColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: selectedColor.withOpacity(0.2)),
+                      border: Border.all(color: selectedColor.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       children: [
@@ -545,7 +550,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 : "Please set a limit amount to enable notifications.",
                             style: TextStyle(
                               fontSize: 12,
-                              color: selectedColor.withOpacity(0.8),
+                              color: selectedColor.withValues(alpha: 0.8),
                             ),
                           ),
                         ),
