@@ -7,6 +7,7 @@ import '../db/db_helper.dart';
 import '../models/expense.dart';
 import '../services/receipt_scanner_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 
 class CashInScreen extends StatefulWidget {
   final Expense? expense;
@@ -29,6 +30,8 @@ class _CashInScreenState extends State<CashInScreen> {
   bool _isListening = false;
   bool _speechAvailable = false;
   String _activeField = '';
+  static const MethodChannel _speechChannel =
+  MethodChannel('spendwise.voice');
 
   // Receipt scanning
   bool _isScanning = false;
@@ -64,20 +67,34 @@ class _CashInScreenState extends State<CashInScreen> {
   }
 
   Future<void> _startListening(String field) async {
-    if (!_speechAvailable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Speech recognition not available on this device.')),
-      );
-      return;
-    }
-
     final status = await Permission.microphone.request();
+
     if (!status.isGranted) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Microphone permission is required for speech input.')),
+          const SnackBar(
+            content: Text('Microphone permission is required'),
+          ),
         );
       }
+      return;
+    }
+
+    final available = await _speech.initialize(
+      onError: (_) => setState(() => _isListening = false),
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          setState(() => _isListening = false);
+        }
+      },
+    );
+
+    if (!available) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Speech recognition not available'),
+        ),
+      );
       return;
     }
 
@@ -87,25 +104,28 @@ class _CashInScreenState extends State<CashInScreen> {
     });
 
     await _speech.listen(
+      localeId: "en_IN",
+      listenFor: const Duration(seconds: 20),
+      pauseFor: const Duration(seconds: 5),
+      partialResults: true,
       onResult: (result) {
-        if (!result.finalResult) return;
-        final words = result.recognizedWords.trim();
-        setState(() {
-          if (field == 'amount') {
-            final numeric = _extractNumberFromSpeech(words);
-            if (numeric != null) amountController.text = numeric;
-          } else if (field == 'note') {
-            noteController.text = words;
+        final words = result.recognizedWords;
+
+        if (field == 'amount') {
+          final numeric = _extractNumberFromSpeech(words);
+          if (numeric != null) {
+            amountController.text = numeric;
           }
-          _isListening = false;
-        });
+        } else {
+          noteController.text = words;
+        }
+
+        if (result.finalResult) {
+          setState(() => _isListening = false);
+        }
       },
-      localeId: 'en_IN',
-      listenFor: const Duration(seconds: 10),
-      pauseFor: const Duration(seconds: 3),
     );
   }
-
   void _stopListening() {
     _speech.stop();
     setState(() => _isListening = false);
@@ -195,11 +215,23 @@ class _CashInScreenState extends State<CashInScreen> {
         title: const Text('Cash In'),
         actions: [
           IconButton(
+            icon: Icon(
+              _isListening ? Icons.mic : Icons.mic_none,
+              color: _isListening ? Colors.red : null,
+            ),
+            tooltip: 'Voice Entry',
+            onPressed: _startVoiceTransaction,
+          ),
+
+          IconButton(
             icon: _isScanning
                 ? const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
             )
                 : const Icon(Icons.document_scanner_outlined),
             tooltip: 'Scan Receipt / Bill',
@@ -370,6 +402,16 @@ class _CashInScreenState extends State<CashInScreen> {
     }
 
     final amount = double.tryParse(amountController.text);
+
+    if (selectedDate.isAfter(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Future transactions are not allowed.'),
+        ),
+      );
+      return;
+    }
+
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid amount.')),
@@ -452,11 +494,64 @@ class _CashInScreenState extends State<CashInScreen> {
       context: context,
       initialDate: selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+      lastDate: DateTime.now(),
     );
     if (picked != null) setState(() => selectedDate = picked);
   }
 
+  Future<void> _startVoiceTransaction() async {
+    try {
+      final result =
+      await _speechChannel.invokeMethod<String>('startSpeech');
+
+      if (result != null && result.trim().isNotEmpty) {
+        _fillTransactionFromVoice(result);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Voice recognition not available.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _fillTransactionFromVoice(String text) {
+
+    noteController.text = text;
+
+    final amountMatch =
+    RegExp(r'\d+').firstMatch(text);
+
+    if (amountMatch != null) {
+      amountController.text =
+      amountMatch.group(0)!;
+    }
+
+    final lower = text.toLowerCase();
+
+    if (lower.contains('grocer')) {
+      selectedCategory = 'Groceries';
+    } else if (lower.contains('food')) {
+      selectedCategory = 'Food';
+    } else if (lower.contains('fuel')) {
+      selectedCategory = 'Fuel';
+    } else if (lower.contains('rent')) {
+      selectedCategory = 'Rent';
+    } else if (lower.contains('shopping')) {
+      selectedCategory = 'Shopping';
+    } else if (lower.contains('salary')) {
+      selectedCategory = 'Salary';
+    } else {
+      selectedCategory = 'Other';
+    }
+
+    setState(() {});
+  }
   void loadCurrency() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => currency = prefs.getString('currency') ?? '₹');
